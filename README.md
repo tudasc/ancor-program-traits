@@ -1,4 +1,4 @@
-# ancoring programm traits
+# ancoring programm all_traits
 
 
 TODO Readme
