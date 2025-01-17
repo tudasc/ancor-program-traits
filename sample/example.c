@@ -2,6 +2,11 @@
 #include <stdio.h>
 #include "../library.h"
 
+#define EXAMPLE_PROPERTY sample
+marker(sample)
+
+int this_is_another_sample;
+
 int main(int argc, char** argv){
     struct trait_options options;
     options.name="sample";

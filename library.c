@@ -14,13 +14,16 @@
 #include <glib.h>
 
 
-#define MARKER_INTEGER_NAME_PREFIX "marker_integer_"
-
 struct trait_results {
     struct trait_options options;
+    char *marker_to_look_for;
     bool is_evluated;
     bool is_true;
 };
+
+int library_count = 0;
+
+int this_is_an_example;
 
 GPtrArray *all_traits;
 // from:
@@ -72,19 +75,21 @@ static uint32_t GetNumberOfSymbolsFromGnuHash(Elf64_Addr gnuHashAddress) {
     return lastSymbol;
 }
 
-
 int trait_evaluation_callback(struct dl_phdr_info *info, size_t size, void *data) {
     struct trait_results *trait = data;
 
     /* ElfW is a macro that creates proper typenames for the used system architecture
     * (e.g. on a 32 bit system, ElfW(Dyn*) becomes "Elf32_Dyn*") */
 
-    printf("Read Library: %s\n", strlen(info->dlpi_name) == 0 ? "(main binary)" : info->dlpi_name);
+    const char *lib_name = strlen(info->dlpi_name) == 0 ? "(main binary)" : info->dlpi_name;
+    printf("Read Library %d: %s\n", library_count, lib_name);
 
-    uintptr_t vdso = (uintptr_t) getauxval(AT_SYSINFO_EHDR);// the address of the vsdo (see the vsdo manpage)
+    uintptr_t vdso = (uintptr_t) getauxval(AT_SYSINFO_EHDR); // the address of the vdso (see the vdso manpage)
     if (info->dlpi_addr == vdso) {
+        assert(library_count == 1 && "You dont have the vdso as the first library???");
         // do not analyze the vDSO (virtual dynamic shared object), it is part of the linux kernel and always present in every process
         // TODO the manpage says that it is a fully fledged elf, but it segfaults when i try to read its symbol table
+        library_count++;
         return 0;
     }
 
@@ -134,18 +139,30 @@ int trait_evaluation_callback(struct dl_phdr_info *info, size_t size, void *data
                          * relative to the beginning of the string table. */
                         sym_name = &strtab[sym[sym_index].st_name];
 
-                        printf("found symbol: %s\n", sym_name);
+
+                        printf("%s\n\t\t%s\n",sym_name,trait->marker_to_look_for);
+                        if (strcmp(sym_name, trait->marker_to_look_for)==0) {
+                            //marker found
+                            trait->is_true = TRUE;
+                            printf("Library %d: %s: Has the Trait\n", library_count, lib_name);
+                            library_count++;
+                            return 0;
+                        }
                     }
                 }
-
                 /* move pointer to the next entry */
                 dyn++;
             }
         }
     }
 
+    trait->is_true = FALSE;
+    printf("Library %d: %s: DEOS NOT have the Trait\n", library_count, lib_name);
 
-    return 0;// nonzero would ABORT reading in the other libraries
+    library_count++;
+
+    return 1;
+    // nonzero ABORTs reading in the other libraries
 }
 
 void evaluate_trait(trait_handle_type trait) {
@@ -172,7 +189,18 @@ trait_handle_type register_trait(struct trait_options *options) {
     struct trait_results *handle = malloc(sizeof(struct trait_results));
     // copy in options
     memcpy(handle, options, sizeof(struct trait_options));
+
+    // deepcopy
+    handle->options.name = malloc(strlen(options->name) + 1);
+    strcpy(handle->options.name, options->name);
+
+
     // initialize other fields
+    handle->marker_to_look_for = malloc(
+            strlen(MARKER_INTEGER_NAME_PREFIX_STR) + strlen(options->name) + 1);// 1 for null terminator
+    strcpy(handle->marker_to_look_for, MARKER_INTEGER_NAME_PREFIX_STR);
+    strcat(handle->marker_to_look_for, options->name);
+
     handle->is_evluated = false;
     handle->is_true = false;
 
@@ -196,6 +224,7 @@ void remove_trait(trait_handle_type trait) {
     printf("remove trait: %s\n", trait->options.name);
     assert(g_ptr_array_find(all_traits, trait, NULL));
     g_ptr_array_remove(all_traits, trait);
+    free(trait->marker_to_look_for);
+    free(trait->options.name);
     free(trait);
-
 }

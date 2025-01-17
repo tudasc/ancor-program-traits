@@ -3,6 +3,8 @@
 
 #include <stdbool.h>
 
+#include "markers.h"
+
 struct trait_options{
     char* name;
 };
