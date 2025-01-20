@@ -25,4 +25,7 @@ target_link_libraries(sample_mpi PRIVATE ancor_programm_traits)
 add_executable(example_app sample/example_app.c)
 target_link_libraries(example_app PRIVATE sample_mpi)
 
+add_library(normal_mpi SHARED sample/normal_mpi_lib.c)
+
+
 
