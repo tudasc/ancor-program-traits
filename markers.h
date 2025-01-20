@@ -10,6 +10,8 @@
 #define CONCAT(x,y) CONCAT2(x,y)
 #define CONCAT2(x,y) x##y
 
+#define call_if_present(x) x()
+
 
 //TODO these could be made internal to our library
 #define STRINGIFY(x) STRINGIFY2(x)
