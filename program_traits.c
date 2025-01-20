@@ -84,7 +84,7 @@ int trait_evaluation_callback(struct dl_phdr_info *info, size_t size, void *data
     * (e.g. on a 32 bit system, ElfW(Dyn*) becomes "Elf32_Dyn*") */
 
     const char *lib_name = strlen(info->dlpi_name) == 0 ? "(main binary)" : info->dlpi_name;
-    printf("Read Library %d: %s\n", library_count, lib_name);
+    //printf("Read Library %d: %s\n", library_count, lib_name);
     if (strlen(info->dlpi_name) == 0) {
         assert(library_count == 1 && "The Main Binary is not the first one to be analyzed??");
     }
@@ -94,11 +94,13 @@ int trait_evaluation_callback(struct dl_phdr_info *info, size_t size, void *data
         assert(library_count == 2 && "You dont have the vdso as the first library???");
         // do not analyze the vDSO (virtual dynamic shared object), it is part of the linux kernel and always present in every process
         // TODO the manpage says that it is a fully fledged elf, but it segfaults when i try to read its symbol table
+        printf("Library %d: %s: skip\n",library_count,lib_name);
         return 0;
     }
 
     if (trait->options.skip_main_binary && strlen(info->dlpi_name) == 0) {
         // skip main binary
+        printf("Library %d: %s: skip\n",library_count,lib_name);
         return 0;
     }
 
@@ -162,7 +164,7 @@ int trait_evaluation_callback(struct dl_phdr_info *info, size_t size, void *data
                         if (strcmp(sym_name, trait->marker_to_look_for) == 0) {
                             //marker found
                             trait->is_true = TRUE;
-                            printf("Library %d: %s: Has the Trait\n", library_count, lib_name);
+                            printf("Library %d: %s: Found Marker\n", library_count, lib_name);
                             return 0; // check next library
                         }
                         if (!has_required_symbol) {
@@ -192,6 +194,7 @@ int trait_evaluation_callback(struct dl_phdr_info *info, size_t size, void *data
     } else {
 
         // has none of the symbols that require the trait
+        printf("Library %d: %s: trait not required\n", library_count, lib_name);
         trait->is_true = TRUE;
         return 0;
     }
