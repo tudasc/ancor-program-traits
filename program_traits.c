@@ -279,4 +279,10 @@ void remove_trait(trait_handle_type trait) {
         free(trait->options.symbols_require_trait);
     }
     free(trait);
+
+    // if last trait removed: free all ressources
+    if(all_traits->len==0){
+        g_ptr_array_free(all_traits,true);
+        all_traits=NULL;
+    }
 }

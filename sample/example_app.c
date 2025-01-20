@@ -3,12 +3,9 @@
 
 #include "mpi_lib.h"
 
-
-
 #ifndef TAG_TO_USE
 #define TAG_TO_USE 42
 #endif
-
 
 int main(int argc, char** argv){
 
