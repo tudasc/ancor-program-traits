@@ -79,46 +79,35 @@ static uint32_t GetNumberOfSymbolsFromGnuHash(Elf64_Addr gnuHashAddress) {
 int trait_evaluation_callback(struct dl_phdr_info *info, size_t size, void *data) {
     struct trait_results *trait = data;
 
+    library_count++;
     /* ElfW is a macro that creates proper typenames for the used system architecture
     * (e.g. on a 32 bit system, ElfW(Dyn*) becomes "Elf32_Dyn*") */
 
     const char *lib_name = strlen(info->dlpi_name) == 0 ? "(main binary)" : info->dlpi_name;
     printf("Read Library %d: %s\n", library_count, lib_name);
-/*
-    ElfW(Sym) *symtab = NULL;
-    ElfW(Word) num_symtab_entries = 0;
-
-
-    char *library_start_address = (char *) info->dlpi_addr;
-    ElfW(Ehdr) *header = (ElfW(Ehdr) *) library_start_address;
-    // check the magic number that this is indeed an elf binary
-    assert(header->e_ident[0] == ELFMAG0);
-    assert(header->e_ident[1] == ELFMAG1);
-    assert(header->e_ident[2] == ELFMAG2);
-    assert(header->e_ident[3] == ELFMAG3);
-
-    // read the section table
-    ElfW(Shdr) *sections = (ElfW(Shdr) *) (library_start_address + header->e_shoff);
-    // search for the symbol table
-    for (ElfW(Half) i = 0; i < header->e_shnum; i++) {
-        if (sections[i].sh_type == SHT_SYMTAB) {
-            symtab = (ElfW(Sym) *) (library_start_address + sections[i].sh_offset);
-            assert(sections[i].sh_entsize == sizeof(ElfW(Sym)));
-            num_symtab_entries = sections[i].sh_size / sections[i].sh_entsize;
-            break;
-        }
+    if (strlen(info->dlpi_name) == 0) {
+        assert(library_count == 1 && "The Main Binary is not the first one to be analyzed??");
     }
-    assert(symtab != NULL);
-    printf("Found symbol table with %d entries\n",num_symtab_entries);
-*/
 
     uintptr_t vdso = (uintptr_t) getauxval(AT_SYSINFO_EHDR); // the address of the vdso (see the vdso manpage)
     if (info->dlpi_addr == vdso) {
-        assert(library_count == 1 && "You dont have the vdso as the first library???");
+        assert(library_count == 2 && "You dont have the vdso as the first library???");
         // do not analyze the vDSO (virtual dynamic shared object), it is part of the linux kernel and always present in every process
         // TODO the manpage says that it is a fully fledged elf, but it segfaults when i try to read its symbol table
-        library_count++;
         return 0;
+    }
+
+    if (trait->options.skip_main_binary && strlen(info->dlpi_name) == 0) {
+        // skip main binary
+        return 0;
+    }
+
+    // we need to check again if it still holds for this library
+    trait->is_true = FALSE;
+    bool has_required_symbol = FALSE;
+    if (trait->options.num_symbols_require_trait == 0) {
+        // trait is always important
+        has_required_symbol = TRUE;
     }
 
 
@@ -169,13 +158,23 @@ int trait_evaluation_callback(struct dl_phdr_info *info, size_t size, void *data
                         sym_name = &strtab[sym[sym_index].st_name];
                         //printf("%d\n", sym_index);
 
-                        printf("%s\n", sym_name);
+                        //parse_symbol_table_name
                         if (strcmp(sym_name, trait->marker_to_look_for) == 0) {
                             //marker found
                             trait->is_true = TRUE;
                             printf("Library %d: %s: Has the Trait\n", library_count, lib_name);
-                            library_count++;
-                            return 0;
+                            return 0; // check next library
+                        }
+                        if (!has_required_symbol) {
+                            assert(trait->options.symbols_require_trait != NULL);
+                            for (unsigned int i = 0; i < trait->options.num_symbols_require_trait; ++i) {
+                                if (strcmp(sym_name, trait->options.symbols_require_trait[i]) == 0) {
+
+                                    has_required_symbol = true;
+                                    break;// no need to check if other required symbols are also present
+                                }
+
+                            }
                         }
                     }
                 }
@@ -185,13 +184,18 @@ int trait_evaluation_callback(struct dl_phdr_info *info, size_t size, void *data
         }
     }
 
-    trait->is_true = FALSE;
-    printf("Library %d: %s: DOES NOT have the Trait\n", library_count, lib_name);
+    if (has_required_symbol) {
+        trait->is_true = FALSE;
+        printf("Library: %s: DOES NOT have the Trait\n", lib_name);
+        // found violation: abort
+        return 1;
+    } else {
 
-    library_count++;
+        // has none of the symbols that require the trait
+        trait->is_true = TRUE;
+        return 0;
+    }
 
-    //return library_count > 2;
-    return 1;
     // nonzero ABORTs reading in the other libraries
 }
 
@@ -217,13 +221,20 @@ trait_handle_type register_trait(struct trait_options *options) {
     }
 
     struct trait_results *handle = malloc(sizeof(struct trait_results));
-    // copy in options
-    memcpy(handle, options, sizeof(struct trait_options));
-
-    // deepcopy
+    // copy in options (deepcopy)
     handle->options.name = malloc(strlen(options->name) + 1);
     strcpy(handle->options.name, options->name);
 
+    if (options->num_symbols_require_trait > 0) {
+        handle->options.num_symbols_require_trait = options->num_symbols_require_trait;
+        handle->options.symbols_require_trait = malloc(sizeof(char *) * options->num_symbols_require_trait);
+        for (unsigned int i = 0; i < options->num_symbols_require_trait; ++i) {
+            char *new_buf = malloc(strlen(options->symbols_require_trait[i]) + 1);// 1 for null terminator
+            strcpy(new_buf, options->symbols_require_trait[i]);
+            handle->options.symbols_require_trait[i] = new_buf;
+        }
+    }
+    handle->options.skip_main_binary = options->skip_main_binary;
 
     // initialize other fields
     handle->marker_to_look_for = malloc(
@@ -256,5 +267,13 @@ void remove_trait(trait_handle_type trait) {
     g_ptr_array_remove(all_traits, trait);
     free(trait->marker_to_look_for);
     free(trait->options.name);
+
+
+    if (trait->options.num_symbols_require_trait > 0) {
+        for (unsigned int i = 0; i < trait->options.num_symbols_require_trait; ++i) {
+            free(trait->options.symbols_require_trait[i]);
+        }
+        free(trait->options.symbols_require_trait);
+    }
     free(trait);
 }

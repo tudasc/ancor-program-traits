@@ -2,11 +2,16 @@
 #define ANCOR_PROGRAMM_TRAITS_PROGRAM_TRAITS_H
 
 #include <stdbool.h>
+#include <glib.h>
 
 #include "markers.h"
 
 struct trait_options{
-    char* name;
+    char* name;// name of the marker (provided to the marker marco)
+    unsigned int num_symbols_require_trait;
+    char** symbols_require_trait; // name of the symbols that require the trait to be present
+    // this means that the trait is present if NO marker was found but the given symbols are not used either
+    bool skip_main_binary;// skips the main binary for analysis, as the symbols from the main binary are often removed from the dynamic symbol table by the compiler
 };
 
 struct trait_results;

@@ -10,7 +10,8 @@
 #define CONCAT(x,y) CONCAT2(x,y)
 #define CONCAT2(x,y) x##y
 
-#define call_if_present(x) x()
+// x must have weak linkage
+#define call_if_present(x) if (x) x()
 
 
 //TODO these could be made internal to our library
