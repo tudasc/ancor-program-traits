@@ -1,7 +1,7 @@
 #ifndef EXAMPLE_MPI_LIB_H
 #define EXAMPLE_MPI_LIB_H
 
-#include "../program_traits.h"
+#include "../../program_traits.h"
 #include <assert.h>
 
 

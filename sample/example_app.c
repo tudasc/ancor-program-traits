@@ -1,7 +1,7 @@
 
 #include <stdio.h>
 
-#include "example_mpi_lib.h"
+#include "mpi_lib.h"
 
 
 

@@ -1,5 +1,5 @@
-#ifndef NORMAL_MPI_LIB_H
-#define NORMAL_MPI_LIB_H
+#ifndef MPI_LIB_H
+#define MPI_LIB_H
 
 void sample_mpi_init(int* argc, char*** argv);
 

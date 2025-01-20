@@ -2,14 +2,14 @@
 #include <stdio.h>
 #include <assert.h>
 
-#include "../program_traits.h"
+#include "../../program_traits.h"
 
 #define USE_WILDCARD
 marker(no_wildcard)
 // the usages of wildcard inside the MPI lib itself is permitted
 
-#include "example_mpi_lib.h"
-#include "../program_traits.h"
+#include "mpi_lib.h"
+#include "../../program_traits.h"
 
 int allow_wildcard_usage = 1;
 int initialized = 0;
@@ -32,7 +32,7 @@ void sample_mpi_init_additional_info() {
 
         options.symbols_require_trait = malloc(sizeof(char *));
         options.symbols_require_trait[0] = "sample_mpi_recv";
-        options.skip_main_binary = true;
+        options.skip_main_binary = false;
         trait_handle_type no_wildcard_trait_handle = register_trait(&options);
         free(options.symbols_require_trait);
 
