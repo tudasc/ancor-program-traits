@@ -18,14 +18,27 @@ target_link_libraries(ancor_programm_traits ${GLIB_LDFLAGS})
 
 
 # the example to showcase/test how it works
+# TODO later: add these configurations as ctests
 
 add_library(sample_mpi SHARED sample/example_mpi_lib.c)
 target_link_libraries(sample_mpi PRIVATE ancor_programm_traits)
 
-add_executable(example_app sample/example_app.c)
-target_link_libraries(example_app PRIVATE sample_mpi)
-
 add_library(normal_mpi SHARED sample/normal_mpi_lib.c)
 
 
+
+# expected to work with wildcards disabled
+add_executable(example_app sample/example_app.c)
+target_link_libraries(example_app PRIVATE sample_mpi)
+
+
+# expected to work with wildcards enabled
+add_executable(example_app_wildcard sample/example_app.c)
+target_link_libraries(example_app_wildcard PRIVATE sample_mpi)
+target_compile_options(example_app_wildcard PUBLIC -DUSE_WILDCARD -DTAG_TO_USE=MATCHING_WILDCARD)
+
+#expected to FAIL compilation
+add_executable(example_app_wildcard_fail sample/example_app.c)
+target_link_libraries(example_app_wildcard_fail PRIVATE sample_mpi)
+target_compile_options(example_app_wildcard_fail PUBLIC -DTAG_TO_USE=MATCHING_WILDCARD)
 

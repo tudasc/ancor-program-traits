@@ -25,7 +25,10 @@ void sample_mpi_init_additional_info(){
 
 void sample_mpi_recv(int tag){
     assert(initialized);
-    assert(tag!=MATCHING_WILDCARD || !allow_wildcard_usage);
+    assert(tag!=MATCHING_WILDCARD || allow_wildcard_usage);
+    if (tag==MATCHING_WILDCARD){
+        printf("Allowed Wildcard usage\n");
+    }
 }
 
 void sample_mpi_finalize(){
