@@ -1,6 +1,7 @@
-#include "library.h"
 
 #define _GNU_SOURCE
+
+#include "program_traits.h"
 
 #include <stdio.h>
 #include <assert.h>
@@ -83,6 +84,33 @@ int trait_evaluation_callback(struct dl_phdr_info *info, size_t size, void *data
 
     const char *lib_name = strlen(info->dlpi_name) == 0 ? "(main binary)" : info->dlpi_name;
     printf("Read Library %d: %s\n", library_count, lib_name);
+/*
+    ElfW(Sym) *symtab = NULL;
+    ElfW(Word) num_symtab_entries = 0;
+
+
+    char *library_start_address = (char *) info->dlpi_addr;
+    ElfW(Ehdr) *header = (ElfW(Ehdr) *) library_start_address;
+    // check the magic number that this is indeed an elf binary
+    assert(header->e_ident[0] == ELFMAG0);
+    assert(header->e_ident[1] == ELFMAG1);
+    assert(header->e_ident[2] == ELFMAG2);
+    assert(header->e_ident[3] == ELFMAG3);
+
+    // read the section table
+    ElfW(Shdr) *sections = (ElfW(Shdr) *) (library_start_address + header->e_shoff);
+    // search for the symbol table
+    for (ElfW(Half) i = 0; i < header->e_shnum; i++) {
+        if (sections[i].sh_type == SHT_SYMTAB) {
+            symtab = (ElfW(Sym) *) (library_start_address + sections[i].sh_offset);
+            assert(sections[i].sh_entsize == sizeof(ElfW(Sym)));
+            num_symtab_entries = sections[i].sh_size / sections[i].sh_entsize;
+            break;
+        }
+    }
+    assert(symtab != NULL);
+    printf("Found symbol table with %d entries\n",num_symtab_entries);
+*/
 
     uintptr_t vdso = (uintptr_t) getauxval(AT_SYSINFO_EHDR); // the address of the vdso (see the vdso manpage)
     if (info->dlpi_addr == vdso) {
@@ -92,6 +120,7 @@ int trait_evaluation_callback(struct dl_phdr_info *info, size_t size, void *data
         library_count++;
         return 0;
     }
+
 
     char *strtab = 0;
     char *sym_name = 0;
@@ -138,10 +167,10 @@ int trait_evaluation_callback(struct dl_phdr_info *info, size_t size, void *data
                          * This is located at the address of st_name
                          * relative to the beginning of the string table. */
                         sym_name = &strtab[sym[sym_index].st_name];
+                        //printf("%d\n", sym_index);
 
-
-                        printf("%s\n\t\t%s\n",sym_name,trait->marker_to_look_for);
-                        if (strcmp(sym_name, trait->marker_to_look_for)==0) {
+                        printf("%s\n", sym_name);
+                        if (strcmp(sym_name, trait->marker_to_look_for) == 0) {
                             //marker found
                             trait->is_true = TRUE;
                             printf("Library %d: %s: Has the Trait\n", library_count, lib_name);
@@ -157,10 +186,11 @@ int trait_evaluation_callback(struct dl_phdr_info *info, size_t size, void *data
     }
 
     trait->is_true = FALSE;
-    printf("Library %d: %s: DEOS NOT have the Trait\n", library_count, lib_name);
+    printf("Library %d: %s: DOES NOT have the Trait\n", library_count, lib_name);
 
     library_count++;
 
+    //return library_count > 2;
     return 1;
     // nonzero ABORTs reading in the other libraries
 }

@@ -1,5 +1,5 @@
-#ifndef ANCOR_PROGRAMM_TRAITS_LIBRARY_H
-#define ANCOR_PROGRAMM_TRAITS_LIBRARY_H
+#ifndef ANCOR_PROGRAMM_TRAITS_PROGRAM_TRAITS_H
+#define ANCOR_PROGRAMM_TRAITS_PROGRAM_TRAITS_H
 
 #include <stdbool.h>
 
@@ -23,4 +23,4 @@ bool check_trait(trait_handle_type trait);
 // free ressources
 void remove_trait(trait_handle_type trait);
 
-#endif //ANCOR_PROGRAMM_TRAITS_LIBRARY_H
+#endif //ANCOR_PROGRAMM_TRAITS_PROGRAM_TRAITS_H
