@@ -14,27 +14,40 @@ add_library(normal_mpi SHARED normal_mpi/mpi_lib.c)
 # D_D_N = default default, no wildcards
 # M_M_W modified,modified, has wildcards
 
-# expected to work with wildcards disabled
-add_executable(M_M_N example_app_1.c)
-target_include_directories(M_M_N PUBLIC modified_mpi)
-target_link_libraries(M_M_N PRIVATE modified_mpi)
-add_test(NAME M_M_N COMMAND M_M_N)
-set_tests_properties(M_M_N PROPERTIES
-        PASS_REGULAR_EXPRESSION "MPI Initialized with wildcards DISabled"
-)
+function(add_testcase_configuration TEST_NAME SRC_CODE HEADER_TO_INCLUDE LIB_TO_LINK TAG_TO_USE EXPECTED_TEST_RESULT)
+    add_executable(${TEST_NAME} example_app_1.c)
+    target_include_directories(${TEST_NAME} PUBLIC ${HEADER_TO_INCLUDE})
+    target_link_libraries(${TEST_NAME} PRIVATE ${LIB_TO_LINK})
+    target_compile_definitions(${TEST_NAME} PUBLIC TAG_TO_USE=${TAG_TO_USE})
+    add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
+    set_tests_properties(${TEST_NAME} PROPERTIES
+            PASS_REGULAR_EXPRESSION ${EXPECTED_TEST_RESULT}
+    )
+endfunction()
 
-# expected to work with wildcards enabled
-add_executable(M_M_W example_app_1.c)
-target_include_directories(M_M_W PUBLIC modified_mpi)
-target_link_libraries(M_M_W PRIVATE modified_mpi)
+add_testcase_configuration(M_M_N example_app_1.c modified_mpi modified_mpi 42 "MPI Initialized with wildcards DISabled")
+add_testcase_configuration(M_M_W example_app_1.c modified_mpi modified_mpi MATCHING_WILDCARD "MPI Initialized with wildcards ENabled")
 target_compile_definitions(M_M_W PUBLIC USE_WILDCARD)
-target_compile_definitions(M_M_W PUBLIC TAG_TO_USE=MATCHING_WILDCARD)
-add_test(NAME M_M_W COMMAND M_M_W)
-set_tests_properties(M_M_W PROPERTIES
-        PASS_REGULAR_EXPRESSION "MPI Initialized with wildcards ENabled"
-)
+
+# building with normal header but linking against modified library: expect wildcard to be always enabled, as lib cannot be sure
+add_testcase_configuration(N_M_N example_app_1.c normal_mpi modified_mpi 42 "MPI Initialized with wildcards ENabled")
+add_testcase_configuration(N_M_W example_app_1.c normal_mpi modified_mpi MATCHING_WILDCARD "MPI Initialized with wildcards ENabled")
+# has no effect in normal header
+#target_compile_definitions(N_M_W PUBLIC USE_WILDCARD)
+
+add_testcase_configuration(N_N_N example_app_1.c normal_mpi normal_mpi 42 "Normal MPI always is using wildcards")
+add_testcase_configuration(N_N_W example_app_1.c normal_mpi normal_mpi MATCHING_WILDCARD "Normal MPI always is using wildcards")
+# has no effect in normal header
+#target_compile_definitions(N_N_W PUBLIC USE_WILDCARD)
 
 
+add_testcase_configuration(M_N_N example_app_1.c modified_mpi normal_mpi 42 "Normal MPI always is using wildcards")
+add_testcase_configuration(M_N_W example_app_1.c modified_mpi normal_mpi MATCHING_WILDCARD "Normal MPI always is using wildcards")
+target_compile_definitions(M_N_W PUBLIC USE_WILDCARD)
+
+
+
+# test the new header without USE_WILDCARD fails compilation:
 #expected to FAIL compilation
 add_executable(M_M_W_fail example_app_1.c)
 target_include_directories(M_M_W_fail PUBLIC modified_mpi)
@@ -50,67 +63,6 @@ add_test(NAME M_M_W_fail COMMAND ${CMAKE_COMMAND} --build . --target M_M_W_fail 
 WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 set_tests_properties(M_M_W_fail PROPERTIES WILL_FAIL TRUE)
 
-
-add_executable(N_M_N example_app_1.c)
-target_include_directories(N_M_N PUBLIC normal_mpi)
-target_link_libraries(N_M_N PRIVATE modified_mpi)
-add_test(NAME N_M_N COMMAND N_M_N)
-# if compiled with normal header: marker is not present, need to assume wildcard usage
-set_tests_properties(N_M_N PROPERTIES
-        PASS_REGULAR_EXPRESSION "MPI Initialized with wildcards ENabled"
-)
-
-add_executable(N_M_W example_app_1.c)
-target_include_directories(N_M_W PUBLIC normal_mpi)
-target_link_libraries(N_M_W PRIVATE modified_mpi)
-# has no effect in normal header
-#target_compile_definitions(N_M_W PUBLIC USE_WILDCARD)
-target_compile_definitions(N_M_W PUBLIC TAG_TO_USE=MATCHING_WILDCARD)
-add_test(NAME N_M_W COMMAND N_M_W)
-set_tests_properties(N_M_W PROPERTIES
-        PASS_REGULAR_EXPRESSION "MPI Initialized with wildcards ENabled"
-)
-
-
-
-add_executable(N_N_N example_app_1.c)
-target_include_directories(N_N_N PUBLIC normal_mpi)
-target_link_libraries(N_N_N PRIVATE normal_mpi)
-add_test(NAME N_N_N COMMAND N_N_N)
-set_tests_properties(N_N_N PROPERTIES
-        PASS_REGULAR_EXPRESSION "Normal MPI always is using wildcards"
-)
-
-add_executable(N_N_W example_app_1.c)
-target_include_directories(N_N_W PUBLIC normal_mpi)
-target_link_libraries(N_N_W PRIVATE normal_mpi)
-# has no effect in normal header
-#target_compile_definitions(N_N_W PUBLIC USE_WILDCARD)
-target_compile_definitions(N_N_W PUBLIC TAG_TO_USE=MATCHING_WILDCARD)
-add_test(NAME N_N_W COMMAND N_N_W)
-set_tests_properties(N_N_W PROPERTIES
-        PASS_REGULAR_EXPRESSION "Normal MPI always is using wildcards"
-)
-
-
-add_executable(M_N_N example_app_1.c)
-target_include_directories(M_N_N PUBLIC modified_mpi)
-target_link_libraries(M_N_N PRIVATE normal_mpi)
-add_test(NAME M_N_N COMMAND M_N_N)
-set_tests_properties(M_N_N PROPERTIES
-        PASS_REGULAR_EXPRESSION "Normal MPI always is using wildcards"
-)
-
-add_executable(M_N_W example_app_1.c)
-target_include_directories(M_N_W PUBLIC modified_mpi)
-target_link_libraries(M_N_W PRIVATE normal_mpi)
-target_compile_definitions(M_N_W PUBLIC USE_WILDCARD)
-target_compile_definitions(M_N_W PUBLIC TAG_TO_USE=MATCHING_WILDCARD)
-add_test(NAME M_N_W COMMAND M_N_W)
-set_tests_properties(M_N_W PROPERTIES
-        PASS_REGULAR_EXPRESSION "Normal MPI always is using wildcards"
-)
-
 # fail compilation
 add_executable(M_N_W_fail example_app_1.c)
 target_include_directories(M_N_W_fail PUBLIC modified_mpi)
@@ -125,8 +77,9 @@ add_test(NAME M_N_W_fail COMMAND ${CMAKE_COMMAND} --build . --target M_N_W_fail 
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 set_tests_properties(M_N_W_fail PROPERTIES WILL_FAIL TRUE)
 
-# test whats happening is MPI is hidden in a library
 
+# test whats happening is MPI is hidden in a library
+# add several configurations of the library:
 add_library(wrapper_normal_no SHARED wrapper_lib/wrapper_lib.c)
 target_include_directories(wrapper_normal_no PUBLIC normal_mpi)
 target_link_libraries(wrapper_normal_no PRIVATE normal_mpi)
@@ -148,7 +101,6 @@ target_link_libraries(wrapper_modified_with PRIVATE modified_mpi)
 target_compile_definitions(wrapper_modified_with PUBLIC USE_WILDCARD)
 target_compile_definitions(wrapper_modified_with PUBLIC TAG_TO_USE=MATCHING_WILDCARD)
 
-
 add_library(wrapper_modified_with_fail SHARED wrapper_lib/wrapper_lib.c)
 target_include_directories(wrapper_modified_with_fail PUBLIC modified_mpi)
 target_link_libraries(wrapper_modified_with_fail PRIVATE modified_mpi)
@@ -162,82 +114,51 @@ add_test(NAME wrapper_modified_with_fail COMMAND ${CMAKE_COMMAND} --build . --ta
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 set_tests_properties(wrapper_modified_with_fail PROPERTIES WILL_FAIL TRUE)
 
-# test the SAME source code linked against the different version of the wrapper library
+
+# test the SAME source code linked against the different version of this wrapper library
 # note that the header of the Lib is always the same
-add_executable(wrapper_test_1 example_app_2.c)
-target_include_directories(wrapper_test_1 PUBLIC wrapper_lib)
-target_link_libraries(wrapper_test_1 PRIVATE wrapper_normal_no)
-add_test(NAME wrapper_test_1 COMMAND wrapper_test_1)
-set_tests_properties(wrapper_test_1 PROPERTIES
-        PASS_REGULAR_EXPRESSION "Normal MPI always is using wildcards"
-)
 
-add_executable(wrapper_test_2 example_app_2.c)
-target_include_directories(wrapper_test_2 PUBLIC wrapper_lib)
-target_link_libraries(wrapper_test_2 PRIVATE wrapper_normal_with)
-add_test(NAME wrapper_test_2 COMMAND wrapper_test_2)
-set_tests_properties(wrapper_test_2 PROPERTIES
-        PASS_REGULAR_EXPRESSION "Normal MPI always is using wildcards"
-)
-
-add_executable(wrapper_test_3 example_app_2.c)
-target_include_directories(wrapper_test_3 PUBLIC wrapper_lib)
-target_link_libraries(wrapper_test_3 PRIVATE wrapper_modified_no)
-add_test(NAME wrapper_test_3 COMMAND wrapper_test_3)
-set_tests_properties(wrapper_test_3 PROPERTIES
-        PASS_REGULAR_EXPRESSION "MPI Initialized with wildcards DISabled"
-)
-
-add_executable(wrapper_test_4 example_app_2.c)
-target_include_directories(wrapper_test_4 PUBLIC wrapper_lib)
-target_link_libraries(wrapper_test_4 PRIVATE wrapper_modified_with)
-add_test(NAME wrapper_test_4 COMMAND wrapper_test_4)
-set_tests_properties(wrapper_test_4 PROPERTIES
-        PASS_REGULAR_EXPRESSION "MPI Initialized with wildcards ENabled"
-)
+function(add_simple_wrapper_testcase TEST_NAME SRC_CODE WRAPPER_LIB EXPECTED_TEST_RESULT)
+    add_executable(${TEST_NAME} ${SRC_CODE})
+    target_include_directories(${TEST_NAME} PUBLIC wrapper_lib)
+    target_link_libraries(${TEST_NAME} PRIVATE ${WRAPPER_LIB})
+    add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
+    set_tests_properties(${TEST_NAME} PROPERTIES
+            PASS_REGULAR_EXPRESSION ${EXPECTED_TEST_RESULT}
+    )
+endfunction()
 
 
-add_executable(wrapper_test_5 example_app_3.c)
-# the lib that contains dlopen
-target_link_libraries(wrapper_test_5 PRIVATE dl)
-add_dependencies(wrapper_test_5 wrapper_normal_no)
-target_compile_definitions(wrapper_test_5 PUBLIC LIBRARY_TO_LOAD="$<TARGET_FILE:wrapper_normal_no>")
-add_test(NAME wrapper_test_5 COMMAND wrapper_test_5)
-set_tests_properties(wrapper_test_5 PROPERTIES
-        PASS_REGULAR_EXPRESSION "Normal MPI always is using wildcards"
-)
+add_simple_wrapper_testcase(wrapper_test_1 example_app_2.c wrapper_normal_no "Normal MPI always is using wildcards")
 
-add_executable(wrapper_test_6 example_app_3.c)
-# the lib that contains dlopen
-target_link_libraries(wrapper_test_6 PRIVATE dl)
-add_dependencies(wrapper_test_6 wrapper_normal_no)
-target_compile_definitions(wrapper_test_6 PUBLIC LIBRARY_TO_LOAD="$<TARGET_FILE:wrapper_normal_with>")
-add_test(NAME wrapper_test_6 COMMAND wrapper_test_6)
-set_tests_properties(wrapper_test_6 PROPERTIES
-        PASS_REGULAR_EXPRESSION "Normal MPI always is using wildcards"
-)
+add_simple_wrapper_testcase(wrapper_test_2 example_app_2.c wrapper_normal_with "Normal MPI always is using wildcards")
+
+add_simple_wrapper_testcase(wrapper_test_3 example_app_2.c wrapper_modified_no "MPI Initialized with wildcards DISabled")
+
+add_simple_wrapper_testcase(wrapper_test_4 example_app_2.c wrapper_modified_with "MPI Initialized with wildcards ENabled")
 
 
-add_executable(wrapper_test_7 example_app_3.c)
-# the lib that contains dlopen
-target_link_libraries(wrapper_test_7 PRIVATE dl)
-add_dependencies(wrapper_test_7 wrapper_normal_no)
-target_compile_definitions(wrapper_test_7 PUBLIC LIBRARY_TO_LOAD="$<TARGET_FILE:wrapper_modified_no>")
-add_test(NAME wrapper_test_7 COMMAND wrapper_test_7)
-set_tests_properties(wrapper_test_7 PROPERTIES
-        PASS_REGULAR_EXPRESSION "MPI Initialized with wildcards DISabled"
-)
+function(add_dynamic_wrapper_testcase TEST_NAME SRC_CODE WRAPPER_LIB EXPECTED_TEST_RESULT)
+    add_executable(${TEST_NAME} ${SRC_CODE})
+    target_include_directories(${TEST_NAME} PUBLIC wrapper_lib)
+    # the lib that contains dlopen
+    target_link_libraries(${TEST_NAME} dl)
+    target_compile_definitions(${TEST_NAME} PUBLIC LIBRARY_TO_LOAD="$<TARGET_FILE:${WRAPPER_LIB}>")
+    add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
+    set_tests_properties(${TEST_NAME} PROPERTIES
+            PASS_REGULAR_EXPRESSION ${EXPECTED_TEST_RESULT}
+    )
+endfunction()
 
 
-add_executable(wrapper_test_8 example_app_3.c)
-# the lib that contains dlopen
-target_link_libraries(wrapper_test_8 PRIVATE dl)
-add_dependencies(wrapper_test_8 wrapper_normal_no)
-target_compile_definitions(wrapper_test_8 PUBLIC LIBRARY_TO_LOAD="$<TARGET_FILE:wrapper_modified_with>")
-add_test(NAME wrapper_test_8 COMMAND wrapper_test_8)
-set_tests_properties(wrapper_test_8 PROPERTIES
-        PASS_REGULAR_EXPRESSION "MPI Initialized with wildcards ENabled"
-)
+add_dynamic_wrapper_testcase(wrapper_test_5 example_app_3.c wrapper_normal_no "Normal MPI always is using wildcards")
+
+add_dynamic_wrapper_testcase(wrapper_test_6 example_app_3.c wrapper_normal_with "Normal MPI always is using wildcards")
+
+add_dynamic_wrapper_testcase(wrapper_test_7 example_app_3.c wrapper_modified_no "MPI Initialized with wildcards DISabled")
+
+add_dynamic_wrapper_testcase(wrapper_test_8 example_app_3.c wrapper_modified_with "MPI Initialized with wildcards ENabled")
+
 
 
 
