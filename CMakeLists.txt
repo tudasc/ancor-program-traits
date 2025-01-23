@@ -17,6 +17,7 @@ include_directories(${GLIB_INCLUDE_DIRS})
 # the main target
 add_library(ancor_programm_traits SHARED program_traits.c)
 target_link_libraries(ancor_programm_traits ${GLIB_LDFLAGS})
+target_link_libraries(ancor_programm_traits dl)
 
 
 add_subdirectory(sample)

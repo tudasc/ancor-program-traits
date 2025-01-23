@@ -13,6 +13,7 @@
 #include <elf.h>
 
 #include <glib.h>
+#include <dlfcn.h>
 
 
 struct trait_results {
@@ -94,13 +95,13 @@ int trait_evaluation_callback(struct dl_phdr_info *info, size_t size, void *data
         assert(library_count == 2 && "You dont have the vdso as the first library???");
         // do not analyze the vDSO (virtual dynamic shared object), it is part of the linux kernel and always present in every process
         // TODO the manpage says that it is a fully fledged elf, but it segfaults when i try to read its symbol table
-        printf("Library %d: %s: skip\n",library_count,lib_name);
+        printf("Library %d: %s: skip\n", library_count, lib_name);
         return 0;
     }
 
     if (trait->options.skip_main_binary && strlen(info->dlpi_name) == 0) {
         // skip main binary
-        printf("Library %d: %s: skip\n",library_count,lib_name);
+        printf("Library %d: %s: skip\n", library_count, lib_name);
         return 0;
     }
 
@@ -212,7 +213,6 @@ void evaluate_trait(trait_handle_type trait) {
     trait->is_evluated = true;
 }
 
-
 trait_handle_type register_trait(struct trait_options *options) {
 
 
@@ -281,8 +281,27 @@ void remove_trait(trait_handle_type trait) {
     free(trait);
 
     // if last trait removed: free all ressources
-    if(all_traits->len==0){
-        g_ptr_array_free(all_traits,true);
-        all_traits=NULL;
+    if (all_traits->len == 0) {
+        g_ptr_array_free(all_traits, true);
+        all_traits = NULL;
     }
+}
+
+
+// this approach of intercepting dlopen would work if one LD_Preloads our library
+typedef void *(*dlopen_fnptr_t)(const char *, int);
+
+dlopen_fnptr_t real_dlopen = NULL;
+dlopen_fnptr_t fake_dlopen = NULL;
+
+void *dlopen(const char *filename, int flag) {
+    // fake dlopen as a handler to handle dlopen calls
+    if (real_dlopen == NULL) {
+        assert(fake_dlopen == NULL);
+        fake_dlopen = &dlopen;
+        real_dlopen = dlsym(RTLD_NEXT, "dlopen");
+    }
+    void* result_handle = real_dlopen(filename, flag);
+    printf("Intercepted dlopen\n");
+    return result_handle;
 }
