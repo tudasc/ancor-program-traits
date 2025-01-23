@@ -159,6 +159,47 @@ add_dynamic_wrapper_testcase(wrapper_test_7 example_app_3.c wrapper_modified_no 
 
 add_dynamic_wrapper_testcase(wrapper_test_8 example_app_3.c wrapper_modified_with "MPI Initialized with wildcards ENabled")
 
+# the example code 4 dlopens the wrapper library AFTER initializing MPI
+
+function(add_dynamic_wrapper_testcase_2 TEST_NAME SRC_CODE MPI_HEADER MPI_LIB WRAPPER_LIB EXPECTED_TEST_RESULT)
+    add_executable(${TEST_NAME} ${SRC_CODE})
+    target_include_directories(${TEST_NAME} PUBLIC wrapper_lib)
+    target_include_directories(${TEST_NAME} PUBLIC ${MPI_HEADER})
+    # the lib that contains dlopen
+    target_link_libraries(${TEST_NAME} dl)
+    target_link_libraries(${TEST_NAME} ${MPI_LIB})
+    target_compile_definitions(${TEST_NAME} PUBLIC LIBRARY_TO_LOAD="$<TARGET_FILE:${WRAPPER_LIB}>")
+    add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
+    set_tests_properties(${TEST_NAME} PROPERTIES
+            PASS_REGULAR_EXPRESSION ${EXPECTED_TEST_RESULT}
+    )
+endfunction()
 
 
+add_dynamic_wrapper_testcase_2(wrapper_test_9 example_app_4.c normal_mpi normal_mpi wrapper_normal_no "Normal MPI always is using wildcards")
+add_dynamic_wrapper_testcase_2(wrapper_test_10 example_app_4.c normal_mpi normal_mpi wrapper_normal_with "Normal MPI always is using wildcards")
+#in this case: first the normal MPI is linked then the wrapper that is compiled with modified MPI
+# expect usage of normal MPI
+add_dynamic_wrapper_testcase_2(wrapper_test_11 example_app_4.c normal_mpi normal_mpi wrapper_modified_no "Normal MPI always is using wildcards")
+add_dynamic_wrapper_testcase_2(wrapper_test_12 example_app_4.c normal_mpi normal_mpi wrapper_modified_with "Normal MPI always is using wildcards")
 
+# cases compiled against normal header: expect that modified lib enables wildcard support
+add_dynamic_wrapper_testcase_2(wrapper_test_13 example_app_4.c normal_mpi modified_mpi wrapper_normal_no "MPI Initialized with wildcards ENabled")
+add_dynamic_wrapper_testcase_2(wrapper_test_14 example_app_4.c normal_mpi modified_mpi wrapper_normal_with "MPI Initialized with wildcards ENabled")
+add_dynamic_wrapper_testcase_2(wrapper_test_15 example_app_4.c normal_mpi modified_mpi wrapper_modified_no "MPI Initialized with wildcards ENabled")
+add_dynamic_wrapper_testcase_2(wrapper_test_16 example_app_4.c normal_mpi modified_mpi wrapper_modified_with "MPI Initialized with wildcards ENabled")
+
+#TODO implement support for these testcases
+# cases with modified header
+# mpi should abort if it detects that wildcards are/may needed after init (normal header: need to assume wildcard usage)
+add_dynamic_wrapper_testcase_2(wrapper_test_17 example_app_4.c modified_mpi modified_mpi wrapper_normal_no "ASSERT FAIL")
+add_dynamic_wrapper_testcase_2(wrapper_test_18 example_app_4.c modified_mpi modified_mpi wrapper_normal_with "ASSERT FAIL")
+# analyze the dynamically loaded library and find that no wildcards are needed there as well
+add_dynamic_wrapper_testcase_2(wrapper_test_19 example_app_4.c modified_mpi modified_mpi wrapper_modified_no "MPI Initialized with wildcards DISabled")
+add_dynamic_wrapper_testcase_2(wrapper_test_20 example_app_4.c modified_mpi modified_mpi wrapper_modified_with "ASSERT FAIL")
+
+# and cases compiled against modified header but executed with normal mpi library
+add_dynamic_wrapper_testcase_2(wrapper_test_21 example_app_4.c modified_mpi normal_mpi wrapper_normal_no "Normal MPI always is using wildcards")
+add_dynamic_wrapper_testcase_2(wrapper_test_22 example_app_4.c modified_mpi normal_mpi wrapper_normal_with "Normal MPI always is using wildcards")
+add_dynamic_wrapper_testcase_2(wrapper_test_23 example_app_4.c modified_mpi normal_mpi wrapper_modified_no "Normal MPI always is using wildcards")
+add_dynamic_wrapper_testcase_2(wrapper_test_24 example_app_4.c modified_mpi normal_mpi wrapper_modified_with "Normal MPI always is using wildcards")
