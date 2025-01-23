@@ -13,8 +13,6 @@
 #include <elf.h>
 
 #include <glib.h>
-#include <dlfcn.h>
-
 
 struct trait_results {
     struct trait_options options;
@@ -203,13 +201,31 @@ int trait_evaluation_callback(struct dl_phdr_info *info, size_t size, void *data
     // nonzero ABORTs reading in the other libraries
 }
 
+// from dlfcn.h but with weak linkeage to check for its presence at runtime
+__attribute__((weak)) void *dlopen(const char *filename, int flag);
+
+bool check_for_dlopen() {
+    return dlopen != NULL;
+}
+
+bool check_for_mprotect() {
+    //TODO implement
+    return dlopen != NULL;
+}
+
 void evaluate_trait(trait_handle_type trait) {
     assert(g_ptr_array_find(all_traits, trait, NULL));
     assert(!trait->is_evluated);
     printf("evaluate trait: %s\n", trait->options.name);
-    dl_iterate_phdr(&trait_evaluation_callback, trait);
 
-
+    if (trait->options.check_for_dlopen && check_for_dlopen()) {
+        trait->is_true = false;
+    } else if (trait->options.check_for_mprotect && check_for_mprotect()) {
+        trait->is_true = false;
+    } else {
+        // check all libraries
+        dl_iterate_phdr(&trait_evaluation_callback, trait);
+    }
     trait->is_evluated = true;
 }
 
@@ -238,6 +254,9 @@ trait_handle_type register_trait(struct trait_options *options) {
         }
     }
     handle->options.skip_main_binary = options->skip_main_binary;
+
+    handle->options.check_for_dlopen = options->check_for_dlopen;
+    handle->options.check_for_mprotect = options->check_for_mprotect;
 
     // initialize other fields
     handle->marker_to_look_for = malloc(
@@ -288,6 +307,10 @@ void remove_trait(trait_handle_type trait) {
 }
 
 
+
+
+
+/*
 // this approach of intercepting dlopen would work if one LD_Preloads our library
 typedef void *(*dlopen_fnptr_t)(const char *, int);
 
@@ -305,3 +328,4 @@ void *dlopen(const char *filename, int flag) {
     printf("Intercepted dlopen\n");
     return result_handle;
 }
+ */

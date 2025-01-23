@@ -12,6 +12,9 @@ struct trait_options{
     char** symbols_require_trait; // name of the symbols that require the trait to be present
     // this means that the trait is present if NO marker was found but the given symbols are not used either
     bool skip_main_binary;// skips the main binary for analysis, as the symbols from the main binary are often removed from the dynamic symbol table by the compiler
+    // these mechanisms can be used to introduce code to the binary after teh analysis of the trait was executed
+    bool check_for_dlopen;
+    bool check_for_mprotect;
 };
 
 struct trait_results;
