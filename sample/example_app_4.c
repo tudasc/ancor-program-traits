@@ -23,7 +23,7 @@ int main(int argc, char **argv) {
     printf("dlopen: %s\n",LIBRARY_TO_LOAD);
 
     // dynamically open the library
-    void* handle = dlopen(LIBRARY_TO_LOAD, RTLD_NOW);
+    void* handle = dlopen(LIBRARY_TO_LOAD, RTLD_LAZY);
     func_ptr_type perform = dlsym(handle, "perform_operation");
 
     sample_mpi_recv(TAG_TO_USE);
