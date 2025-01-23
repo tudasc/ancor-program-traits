@@ -195,3 +195,49 @@ add_test(NAME wrapper_test_4 COMMAND wrapper_test_4)
 set_tests_properties(wrapper_test_4 PROPERTIES
         PASS_REGULAR_EXPRESSION "MPI Initialized with wildcards ENabled"
 )
+
+
+add_executable(wrapper_test_5 example_app_3.c)
+# the lib that contains dlopen
+target_link_libraries(wrapper_test_5 PRIVATE dl)
+add_dependencies(wrapper_test_5 wrapper_normal_no)
+target_compile_definitions(wrapper_test_5 PUBLIC LIBRARY_TO_LOAD="$<TARGET_FILE:wrapper_normal_no>")
+add_test(NAME wrapper_test_5 COMMAND wrapper_test_5)
+set_tests_properties(wrapper_test_5 PROPERTIES
+        PASS_REGULAR_EXPRESSION "Normal MPI always is using wildcards"
+)
+
+add_executable(wrapper_test_6 example_app_3.c)
+# the lib that contains dlopen
+target_link_libraries(wrapper_test_6 PRIVATE dl)
+add_dependencies(wrapper_test_6 wrapper_normal_no)
+target_compile_definitions(wrapper_test_6 PUBLIC LIBRARY_TO_LOAD="$<TARGET_FILE:wrapper_normal_with>")
+add_test(NAME wrapper_test_6 COMMAND wrapper_test_6)
+set_tests_properties(wrapper_test_6 PROPERTIES
+        PASS_REGULAR_EXPRESSION "Normal MPI always is using wildcards"
+)
+
+
+add_executable(wrapper_test_7 example_app_3.c)
+# the lib that contains dlopen
+target_link_libraries(wrapper_test_7 PRIVATE dl)
+add_dependencies(wrapper_test_7 wrapper_normal_no)
+target_compile_definitions(wrapper_test_7 PUBLIC LIBRARY_TO_LOAD="$<TARGET_FILE:wrapper_modified_no>")
+add_test(NAME wrapper_test_7 COMMAND wrapper_test_7)
+set_tests_properties(wrapper_test_7 PROPERTIES
+        PASS_REGULAR_EXPRESSION "MPI Initialized with wildcards DISabled"
+)
+
+
+add_executable(wrapper_test_8 example_app_3.c)
+# the lib that contains dlopen
+target_link_libraries(wrapper_test_8 PRIVATE dl)
+add_dependencies(wrapper_test_8 wrapper_normal_no)
+target_compile_definitions(wrapper_test_8 PUBLIC LIBRARY_TO_LOAD="$<TARGET_FILE:wrapper_modified_with>")
+add_test(NAME wrapper_test_8 COMMAND wrapper_test_8)
+set_tests_properties(wrapper_test_8 PROPERTIES
+        PASS_REGULAR_EXPRESSION "MPI Initialized with wildcards ENabled"
+)
+
+
+
