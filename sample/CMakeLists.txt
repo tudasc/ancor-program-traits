@@ -124,3 +124,74 @@ set_target_properties(M_N_W_fail PROPERTIES
 add_test(NAME M_N_W_fail COMMAND ${CMAKE_COMMAND} --build . --target M_N_W_fail --config $<CONFIGURATION>
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 set_tests_properties(M_N_W_fail PROPERTIES WILL_FAIL TRUE)
+
+# test whats happening is MPI is hidden in a library
+
+add_library(wrapper_normal_no SHARED wrapper_lib/wrapper_lib.c)
+target_include_directories(wrapper_normal_no PUBLIC normal_mpi)
+target_link_libraries(wrapper_normal_no PRIVATE normal_mpi)
+
+add_library(wrapper_modified_no SHARED wrapper_lib/wrapper_lib.c)
+target_include_directories(wrapper_modified_no PUBLIC modified_mpi)
+target_link_libraries(wrapper_modified_no PRIVATE modified_mpi)
+
+add_library(wrapper_normal_with SHARED wrapper_lib/wrapper_lib.c)
+target_include_directories(wrapper_normal_with PUBLIC normal_mpi)
+target_link_libraries(wrapper_normal_with PRIVATE normal_mpi)
+# not needed with normal header
+#target_compile_definitions(wrapper_normal_with PUBLIC USE_WILDCARD)
+target_compile_definitions(wrapper_normal_with PUBLIC TAG_TO_USE=MATCHING_WILDCARD)
+
+add_library(wrapper_modified_with SHARED wrapper_lib/wrapper_lib.c)
+target_include_directories(wrapper_modified_with PUBLIC modified_mpi)
+target_link_libraries(wrapper_modified_with PRIVATE modified_mpi)
+target_compile_definitions(wrapper_modified_with PUBLIC USE_WILDCARD)
+target_compile_definitions(wrapper_modified_with PUBLIC TAG_TO_USE=MATCHING_WILDCARD)
+
+
+add_library(wrapper_modified_with_fail SHARED wrapper_lib/wrapper_lib.c)
+target_include_directories(wrapper_modified_with_fail PUBLIC modified_mpi)
+target_link_libraries(wrapper_modified_with_fail PRIVATE modified_mpi)
+# make compilation fail
+#target_compile_definitions(wrapper_modified_with_fail PUBLIC USE_WILDCARD)
+target_compile_definitions(wrapper_modified_with_fail PUBLIC TAG_TO_USE=MATCHING_WILDCARD)
+set_target_properties(wrapper_modified_with_fail PROPERTIES
+        EXCLUDE_FROM_ALL TRUE
+        EXCLUDE_FROM_DEFAULT_BUILD TRUE)
+add_test(NAME wrapper_modified_with_fail COMMAND ${CMAKE_COMMAND} --build . --target wrapper_modified_with_fail --config $<CONFIGURATION>
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+set_tests_properties(wrapper_modified_with_fail PROPERTIES WILL_FAIL TRUE)
+
+# test the SAME source code linked against the different version of the wrapper library
+# note that the header of the Lib is always the same
+add_executable(wrapper_test_1 example_app_2.c)
+target_include_directories(wrapper_test_1 PUBLIC wrapper_lib)
+target_link_libraries(wrapper_test_1 PRIVATE wrapper_normal_no)
+add_test(NAME wrapper_test_1 COMMAND wrapper_test_1)
+set_tests_properties(wrapper_test_1 PROPERTIES
+        PASS_REGULAR_EXPRESSION "Normal MPI always is using wildcards"
+)
+
+add_executable(wrapper_test_2 example_app_2.c)
+target_include_directories(wrapper_test_2 PUBLIC wrapper_lib)
+target_link_libraries(wrapper_test_2 PRIVATE wrapper_normal_with)
+add_test(NAME wrapper_test_2 COMMAND wrapper_test_2)
+set_tests_properties(wrapper_test_2 PROPERTIES
+        PASS_REGULAR_EXPRESSION "Normal MPI always is using wildcards"
+)
+
+add_executable(wrapper_test_3 example_app_2.c)
+target_include_directories(wrapper_test_3 PUBLIC wrapper_lib)
+target_link_libraries(wrapper_test_3 PRIVATE wrapper_modified_no)
+add_test(NAME wrapper_test_3 COMMAND wrapper_test_3)
+set_tests_properties(wrapper_test_3 PROPERTIES
+        PASS_REGULAR_EXPRESSION "MPI Initialized with wildcards DISabled"
+)
+
+add_executable(wrapper_test_4 example_app_2.c)
+target_include_directories(wrapper_test_4 PUBLIC wrapper_lib)
+target_link_libraries(wrapper_test_4 PRIVATE wrapper_modified_with)
+add_test(NAME wrapper_test_4 COMMAND wrapper_test_4)
+set_tests_properties(wrapper_test_4 PROPERTIES
+        PASS_REGULAR_EXPRESSION "MPI Initialized with wildcards ENabled"
+)
