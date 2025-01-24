@@ -29,6 +29,8 @@ void check_wildcard_usage_information() {
         options.symbols_require_trait[0] = "sample_mpi_recv";
         // it does work with false as well
         options.skip_main_binary = false;
+        options.check_for_dlopen=true;
+        options.check_for_mprotect=true;
         no_wildcard_trait_handle = register_trait(&options);
         free(options.symbols_require_trait);
 
