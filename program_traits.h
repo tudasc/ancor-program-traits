@@ -2,8 +2,6 @@
 #define ANCOR_PROGRAMM_TRAITS_PROGRAM_TRAITS_H
 
 #include <stdbool.h>
-#include <glib.h>
-
 #include "markers.h"
 
 struct trait_options{

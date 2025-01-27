@@ -1,6 +1,7 @@
 
 #include <stdio.h>
 #include <assert.h>
+#include <stdlib.h>
 
 #include "../../program_traits.h"
 
