@@ -220,8 +220,10 @@ void evaluate_trait(trait_handle_type trait) {
     printf("evaluate trait: %s\n", trait->options.name);
 
     if (trait->options.check_for_dlopen && check_for_dlopen()) {
+        printf("Found Use of dlopen, cannot analyze trait, must assume it does not hold anymore after dlopen usage\n");
         trait->is_true = false;
     } else if (trait->options.check_for_mprotect && check_for_mprotect()) {
+        printf("Found Use of mprotect , cannot analyze trait, must assume it does not hold anymore after mprotect  usage\n");
         trait->is_true = false;
     } else {
         // check all libraries
