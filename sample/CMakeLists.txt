@@ -1,5 +1,7 @@
 # the example to showcase/test how it works
 
+add_subdirectory(pmpi_wrapper_test)
+
 # modified stub library for testing
 add_library(modified_mpi SHARED modified_mpi/mpi_lib.c)
 target_link_libraries(modified_mpi PRIVATE ancor_programm_traits)
