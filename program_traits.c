@@ -210,6 +210,7 @@ bool check_for_dlopen() {
 
 bool check_for_mprotect() {
     //TODO implement
+    // mprotect is part of the stdlib, it wil always be defined, so we need to check for its presence in all parts of the program except the stdlib
     return dlopen != NULL;
 }
 
