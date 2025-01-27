@@ -1,4 +1,3 @@
-
 #include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -9,8 +8,6 @@
 marker(no_wildcard)
 // this wrapper lib has no wildcards
 #include <mpi.h>
-
-
 
 
 #ifndef _EXTERN_C_
@@ -35,8 +32,11 @@ _EXTERN_C_ void *MPIR_ToPointer(int);
 #endif /* PIC */
 
 _EXTERN_C_ void pmpi_init(MPI_Fint *ierr);
+
 _EXTERN_C_ void PMPI_INIT(MPI_Fint *ierr);
+
 _EXTERN_C_ void pmpi_init_(MPI_Fint *ierr);
+
 _EXTERN_C_ void pmpi_init__(MPI_Fint *ierr);
 
 
@@ -48,18 +48,18 @@ int initialized = 0;
 void check_wildcard_usage_information() {
     // after initalization we ignore extra information
     if (!initialized) {
-
         printf("Check wildcard usage\n");
         struct trait_options options;
         options.name = "no_wildcard";
         options.num_symbols_require_trait = 1;
 
-        options.symbols_require_trait = malloc(sizeof(char *));
-        options.symbols_require_trait[0] = "sample_mpi_recv";
+        options.symbols_require_trait = malloc(2 * sizeof(char *));
+        options.symbols_require_trait[0] = "MPI_Recv";
+        options.symbols_require_trait[1] = "MPI_Irecv";
         // it does work with false as well
         options.skip_main_binary = false;
-        options.check_for_dlopen=true;
-        options.check_for_mprotect=true;
+        options.check_for_dlopen = true;
+        options.check_for_mprotect = true;
         no_wildcard_trait_handle = register_trait(&options);
         free(options.symbols_require_trait);
 
@@ -73,6 +73,7 @@ void check_wildcard_usage_information() {
 
 /* ================== C Wrappers for MPI_Init ================== */
 _EXTERN_C_ int PMPI_Init(int *argc, char ***argv);
+
 _EXTERN_C_ int MPI_Init(int *argc, char ***argv) {
     assert(initialized == 0);
     // check if wildcards are needed
@@ -81,34 +82,33 @@ _EXTERN_C_ int MPI_Init(int *argc, char ***argv) {
     printf("MPI Initialized with wildcards %s\n", allow_wildcard_usage ? "ENabled" : "DISabled");
 
     return PMPI_Init(argc, argv);
-
 }
 
 /* ================== C Wrappers for MPI_Recv ================== */
 _EXTERN_C_ int PMPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
-                         MPI_Comm comm, MPI_Status * status);
+                         MPI_Comm comm, MPI_Status *status);
+
 _EXTERN_C_ int MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
-                        MPI_Comm comm, MPI_Status * status) {
+                        MPI_Comm comm, MPI_Status *status) {
     assert(initialized);
-    if (source == MPI_ANY_SOURCE || tag== MPI_ANY_TAG) {
-        assert (allow_wildcard_usage);
+    if (source == MPI_ANY_SOURCE || tag == MPI_ANY_TAG) {
+        assert(allow_wildcard_usage);
         printf("Allowed Wildcard usage\n");
     }
-    return PMPI_Recv(buf,count,datatype,source,tag,comm,status);
-
+    return PMPI_Recv(buf, count, datatype, source, tag, comm, status);
 }
 
 /* ================== C Wrappers for MPI_IRecv ================== */
 _EXTERN_C_ int PMPI_Irecv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
                           MPI_Comm comm, MPI_Request *request);
-_EXTERN_C_ int MPI_Irecv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
-                         MPI_Comm comm, MPI_Request *request){
 
+_EXTERN_C_ int MPI_Irecv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
+                         MPI_Comm comm, MPI_Request *request) {
     assert(initialized);
-    if (source == MPI_ANY_SOURCE || tag== MPI_ANY_TAG) {
-        assert (allow_wildcard_usage);
+    if (source == MPI_ANY_SOURCE || tag == MPI_ANY_TAG) {
+        assert(allow_wildcard_usage);
         printf("Allowed Wildcard usage\n");
     }
 
-    return PMPI_Irecv(buf,count,datatype,source,tag,comm,request);
+    return PMPI_Irecv(buf, count, datatype, source, tag, comm, request);
 }
