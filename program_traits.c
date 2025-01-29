@@ -286,6 +286,15 @@ trait_handle_type register_trait(struct trait_options *options) {
 
     handle->options.check_for_dlopen = options->check_for_dlopen;
     handle->options.check_for_mprotect = options->check_for_mprotect;
+    if (options->num_libraies_to_skip>0){
+        handle->options.num_libraies_to_skip = options->num_libraies_to_skip;
+        handle->options.libraies_to_skip = malloc(options->num_libraies_to_skip * sizeof(char *));
+        for (unsigned int i = 0; i < options->num_libraies_to_skip; ++i) {
+            char *new_buf = malloc(strlen(options->libraies_to_skip[i]) + 1);// +1 for null terminator
+            strcpy(new_buf, options->libraies_to_skip[i]);
+            handle->options.libraies_to_skip[i] = new_buf;
+        }
+    }
 
     // initialize other fields
     handle->marker_to_look_for = malloc(
@@ -328,6 +337,13 @@ void remove_trait(trait_handle_type trait) {
         }
         free(trait->options.symbols_require_trait);
     }
+    if (trait->options.num_libraies_to_skip > 0) {
+        for (unsigned int i = 0; i < trait->options.num_libraies_to_skip; ++i) {
+            free(trait->options.libraies_to_skip[i]);
+        }
+        free(trait->options.libraies_to_skip);
+    }
+
     free(trait);
 
     // if last trait removed: free all ressources
