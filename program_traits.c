@@ -79,22 +79,21 @@ static uint32_t GetNumberOfSymbolsFromGnuHash(Elf64_Addr gnuHashAddress) {
     return lastSymbol;
 }
 
+bool is_same_lib(const char *lib_name_a, const char *lib_name_b) {
+    struct stat stat_lib_a = {0};
+    stat(lib_name_a, &stat_lib_a);
+    struct stat stat_lib_b = {0};
+    stat(lib_name_b, &stat_lib_b);
+    return (stat_lib_a.st_dev == stat_lib_b.st_dev &&
+            stat_lib_a.st_ino == stat_lib_b.st_ino);
+}
+
 bool is_libc(const char *lib_name) {
-    struct stat stat_lib_to_analyze = {0};
-    stat(lib_name, &stat_lib_to_analyze);
-    struct stat stat_libc = {0};
-    stat(LIBC_LOCATION, &stat_libc);
-    return (stat_lib_to_analyze.st_dev == stat_libc.st_dev &&
-            stat_lib_to_analyze.st_ino == stat_libc.st_ino);
+    return is_same_lib(lib_name, LIBC_LOCATION);
 }
 
 bool is_libdl(const char *lib_name) {
-    struct stat stat_lib_to_analyze = {0};
-    stat(lib_name, &stat_lib_to_analyze);
-    struct stat stat_libdl = {0};
-    stat(LIBC_LOCATION, &stat_libdl);
-    return (stat_lib_to_analyze.st_dev == stat_libdl.st_dev &&
-            stat_lib_to_analyze.st_ino == stat_libdl.st_ino);
+    return is_same_lib(lib_name, LIBDL_LOCATION);
 }
 
 bool check_skip_library(struct dl_phdr_info *info, struct trait_results *trait) {
@@ -122,14 +121,8 @@ bool check_skip_library(struct dl_phdr_info *info, struct trait_results *trait) 
     }
 
     // check if it is in list of skipped binaries
-    struct stat stat_lib_to_analyze = {0};
-    stat(lib_name, &stat_lib_to_analyze);
-
     for (unsigned int i = 0; i < trait->options.num_libraies_to_skip; ++i) {
-        struct stat stat_lib_to_skip = {0};
-        stat(trait->options.libraies_to_skip[i], &stat_lib_to_skip);
-        if (stat_lib_to_analyze.st_dev == stat_lib_to_skip.st_dev && stat_lib_to_analyze.st_ino == stat_lib_to_skip.
-            st_ino) {
+        if (is_same_lib(lib_name, trait->options.libraies_to_skip[i])) {
             printf("Library %d: %s: skip\n", library_count, lib_name);
             return true;
         }
@@ -219,12 +212,13 @@ int trait_evaluation_callback(struct dl_phdr_info *info, size_t size, void *data
                             printf("Library %d: %s: Found Marker\n", library_count, lib_name);
                             has_marker = TRUE;
                         }
-                        if (trait->options.check_for_dlopen && strcmp(sym_name, "dlopen") == 0 && ! is_libdl(lib_name)) {
+                        if (trait->options.check_for_dlopen && strcmp(sym_name, "dlopen") == 0 && !is_libdl(lib_name)) {
                             printf("Library %d: %s: Found dlopen\n", library_count, lib_name);
                             trait->is_true = FALSE;
                             return 1; // abort
                         }
-                        if (trait->options.check_for_mprotect && strcmp(sym_name, "mprotect") == 0 && ! is_libc(lib_name)) {
+                        if (trait->options.check_for_mprotect && strcmp(sym_name, "mprotect") == 0 && !
+                            is_libc(lib_name)) {
                             printf("Library %d: %s: Found mprotect\n", library_count, lib_name);
                             trait->is_true = FALSE;
                             return 1; // abort
