@@ -13,6 +13,9 @@ struct trait_options{
     // these mechanisms can be used to introduce code to the binary after teh analysis of the trait was executed
     bool check_for_dlopen;
     bool check_for_mprotect;
+    // libraries to excerpt from the analysis, e.g. if the own library has dlopen to load some implementation on demand
+    unsigned int num_libraies_to_skip;
+    char** libraies_to_skip;
 };
 
 struct trait_results;

@@ -1,4 +1,3 @@
-
 #define _GNU_SOURCE
 
 #include "program_traits.h"
@@ -19,6 +18,8 @@ struct trait_results {
     char *marker_to_look_for;
     bool is_evluated;
     bool is_true;
+    bool found_dlopen;
+    bool found_mprotect;
 };
 
 int library_count = 0;
@@ -75,6 +76,38 @@ static uint32_t GetNumberOfSymbolsFromGnuHash(Elf64_Addr gnuHashAddress) {
     return lastSymbol;
 }
 
+bool check_skip_library(struct dl_phdr_info *info, struct trait_results *trait) {
+    const char *lib_name = strlen(info->dlpi_name) == 0 ? "(main binary)" : info->dlpi_name;
+
+    // skip vdso
+    uintptr_t vdso = (uintptr_t) getauxval(AT_SYSINFO_EHDR); // the address of the vdso (see the vdso manpage)
+    if (info->dlpi_addr == vdso) {
+        assert(library_count == 2 && "You dont have the vdso as the first library???");
+        // do not analyze the vDSO (virtual dynamic shared object), it is part of the linux kernel and always present in every process
+        // TODO the manpage says that it is a fully fledged elf, but it segfaults when i try to read its symbol table
+        printf("Library %d: %s: skip\n", library_count, lib_name);
+        return true;
+    }
+
+    // skip main binary if indicated
+    if (trait->options.skip_main_binary && strlen(info->dlpi_name) == 0) {
+        // skip main binary
+        printf("Library %d: %s: skip\n", library_count, lib_name);
+        return true;
+    }
+
+    // check if it is in list of skipped binaries
+
+    for (unsigned int i = 0; i < trait->options.num_libraies_to_skip; ++i) {
+        if (strcmp(trait->options.libraies_to_skip[i], lib_name) == 0) {
+            printf("Library %d: %s: skip\n", library_count, lib_name);
+            return true;
+        }
+    }
+
+    return false;
+}
+
 int trait_evaluation_callback(struct dl_phdr_info *info, size_t size, void *data) {
     struct trait_results *trait = data;
 
@@ -88,23 +121,13 @@ int trait_evaluation_callback(struct dl_phdr_info *info, size_t size, void *data
         assert(library_count == 1 && "The Main Binary is not the first one to be analyzed??");
     }
 
-    uintptr_t vdso = (uintptr_t) getauxval(AT_SYSINFO_EHDR); // the address of the vdso (see the vdso manpage)
-    if (info->dlpi_addr == vdso) {
-        assert(library_count == 2 && "You dont have the vdso as the first library???");
-        // do not analyze the vDSO (virtual dynamic shared object), it is part of the linux kernel and always present in every process
-        // TODO the manpage says that it is a fully fledged elf, but it segfaults when i try to read its symbol table
-        printf("Library %d: %s: skip\n", library_count, lib_name);
-        return 0;
-    }
-
-    if (trait->options.skip_main_binary && strlen(info->dlpi_name) == 0) {
-        // skip main binary
-        printf("Library %d: %s: skip\n", library_count, lib_name);
-        return 0;
+    if (check_skip_library(info, trait)) {
+        return 0; // skip
     }
 
     // we need to check again if it still holds for this library
     trait->is_true = FALSE;
+    bool has_marker = false;
     bool has_required_symbol = FALSE;
     if (trait->options.num_symbols_require_trait == 0) {
         // trait is always important
@@ -164,39 +187,50 @@ int trait_evaluation_callback(struct dl_phdr_info *info, size_t size, void *data
                             //marker found
                             trait->is_true = TRUE;
                             printf("Library %d: %s: Found Marker\n", library_count, lib_name);
-                            return 0; // check next library
+                            has_marker = TRUE;
                         }
+                        if (trait->options.check_for_dlopen && strcmp(sym_name, "dlopen") == 0) {
+                            printf("Library %d: %s: Found dlopen\n", library_count, lib_name);
+                            trait->is_true = FALSE;
+                            return 1; // abort
+                        }
+                        if (trait->options.check_for_mprotect && strcmp(sym_name, "mprotect") == 0) {
+                            printf("Library %d: %s: Found mprotect\n", library_count, lib_name);
+                            trait->is_true = FALSE;
+                            return 1; // abort
+                        }
+
                         if (!has_required_symbol) {
                             assert(trait->options.symbols_require_trait != NULL);
                             for (unsigned int i = 0; i < trait->options.num_symbols_require_trait; ++i) {
                                 if (strcmp(sym_name, trait->options.symbols_require_trait[i]) == 0) {
-
                                     has_required_symbol = true;
-                                    break;// no need to check if other required symbols are also present
+                                    break; // no need to check if other required symbols are also present
                                 }
-
                             }
                         }
-                    }
+                        // end parse symbol in table
+                    } // end for each symbol table entry
                 }
-                /* move pointer to the next entry */
+                /* move pointer to the next elf section */
                 dyn++;
             }
         }
     }
-
-    if (has_required_symbol) {
-        trait->is_true = FALSE;
-        printf("Library: %s: DOES NOT have the Trait\n", lib_name);
-        // found violation: abort
-        return 1;
-    } else {
-
-        // has none of the symbols that require the trait
-        printf("Library %d: %s: trait not required\n", library_count, lib_name);
-        trait->is_true = TRUE;
-        return 0;
+    if (!has_marker) {
+        if (has_required_symbol) {
+            trait->is_true = FALSE;
+            printf("Library: %s: DOES NOT have the Trait\n", lib_name);
+            // found violation: abort
+            return 1;
+        } else {
+            // has none of the symbols that require the trait
+            printf("Library %d: %s: trait not required\n", library_count, lib_name);
+            trait->is_true = TRUE;
+            return 0;
+        }
     }
+    return 0;
 
     // nonzero ABORTs reading in the other libraries
 }
@@ -204,37 +238,27 @@ int trait_evaluation_callback(struct dl_phdr_info *info, size_t size, void *data
 // from dlfcn.h but with weak linkeage to check for its presence at runtime
 __attribute__((weak)) void *dlopen(const char *filename, int flag);
 
-bool check_for_dlopen() {
-    return dlopen != NULL;
-}
-
-bool check_for_mprotect() {
-    //TODO implement
-    // mprotect is part of the stdlib, it wil always be defined, so we need to check for its presence in all parts of the program except the stdlib
-    return dlopen != NULL;
-}
-
 void evaluate_trait(trait_handle_type trait) {
     assert(g_ptr_array_find(all_traits, trait, NULL));
     assert(!trait->is_evluated);
     printf("evaluate trait: %s\n", trait->options.name);
 
-    if (trait->options.check_for_dlopen && check_for_dlopen()) {
+    // check all libraries
+    dl_iterate_phdr(&trait_evaluation_callback, trait);
+
+    if (trait->options.check_for_dlopen && trait->found_dlopen) {
         printf("Found Use of dlopen, cannot analyze trait, must assume it does not hold anymore after dlopen usage\n");
-        trait->is_true = false;
-    } else if (trait->options.check_for_mprotect && check_for_mprotect()) {
-        printf("Found Use of mprotect , cannot analyze trait, must assume it does not hold anymore after mprotect  usage\n");
-        trait->is_true = false;
-    } else {
-        // check all libraries
-        dl_iterate_phdr(&trait_evaluation_callback, trait);
+        assert(trait->is_true == false);
+        if (trait->options.check_for_mprotect && trait->found_mprotect) {
+            printf(
+                "Found Use of mprotect , cannot analyze trait, must assume it does not hold anymore after mprotect  usage\n");
+            assert(trait->is_true == false);
+        }
+        trait->is_evluated = true;
     }
-    trait->is_evluated = true;
 }
 
 trait_handle_type register_trait(struct trait_options *options) {
-
-
     printf("register trait: %s\n", options->name);
 
     if (all_traits == NULL) {
@@ -251,7 +275,7 @@ trait_handle_type register_trait(struct trait_options *options) {
         handle->options.num_symbols_require_trait = options->num_symbols_require_trait;
         handle->options.symbols_require_trait = malloc(sizeof(char *) * options->num_symbols_require_trait);
         for (unsigned int i = 0; i < options->num_symbols_require_trait; ++i) {
-            char *new_buf = malloc(strlen(options->symbols_require_trait[i]) + 1);// 1 for null terminator
+            char *new_buf = malloc(strlen(options->symbols_require_trait[i]) + 1); // 1 for null terminator
             strcpy(new_buf, options->symbols_require_trait[i]);
             handle->options.symbols_require_trait[i] = new_buf;
         }
@@ -263,12 +287,14 @@ trait_handle_type register_trait(struct trait_options *options) {
 
     // initialize other fields
     handle->marker_to_look_for = malloc(
-            strlen(MARKER_INTEGER_NAME_PREFIX_STR) + strlen(options->name) + 1);// 1 for null terminator
+        strlen(MARKER_INTEGER_NAME_PREFIX_STR) + strlen(options->name) + 1); // 1 for null terminator
     strcpy(handle->marker_to_look_for, MARKER_INTEGER_NAME_PREFIX_STR);
     strcat(handle->marker_to_look_for, options->name);
 
     handle->is_evluated = false;
     handle->is_true = false;
+    handle->found_dlopen = false;
+    handle->found_mprotect = false;
 
     g_ptr_array_add(all_traits, handle);
     return handle;
@@ -308,9 +334,6 @@ void remove_trait(trait_handle_type trait) {
         all_traits = NULL;
     }
 }
-
-
-
 
 
 /*
