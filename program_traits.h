@@ -32,4 +32,9 @@ bool check_trait(trait_handle_type trait);
 // free ressources
 void remove_trait(trait_handle_type trait);
 
+//TODO this points to specific system libraries like libC
+// this should be set at configure time
+#define LIBC "/lib/x86_64-linux-gnu/libc.so.6"
+#define LIBDL "/lib/x86_64-linux-gnu/libdl.so.2"
+
 #endif //ANCOR_PROGRAMM_TRAITS_PROGRAM_TRAITS_H
