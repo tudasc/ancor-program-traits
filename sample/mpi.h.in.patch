@@ -1,14 +1,11 @@
-diff --git a/home/tim/mpich/install/include/mpi.h b/home/tim/ancor-programm-traits/sample/pmpi_wrapper_test/mpi.h
-index 1af5141..1fa230e 100644
---- a/home/tim/mpich/install/include/mpi.h
-+++ b/home/tim/ancor-programm-traits/sample/pmpi_wrapper_test/mpi.h
-@@ -1,3 +1,5 @@
-+// this it the mpi.h from MPICH
-+// only the thing about the matching wildcard usage is changed
+--- mpi.h.in.orig	2025-01-29 16:20:45.588477339 +0100
++++ mpi.h.in	2025-01-29 16:29:27.601584461 +0100
+@@ -1,3 +1,4 @@
++// patched to include the marker integer for the absence of wildcards
  /*
   * Copyright (C) by Argonne National Laboratory
   *     See COPYRIGHT in top-level directory
-@@ -500,9 +502,24 @@ extern int * const MPI_UNWEIGHTED MPICH_API_PUBLIC;
+@@ -500,9 +501,28 @@
  extern int * const MPI_WEIGHTS_EMPTY MPICH_API_PUBLIC;
  
  #define MPI_PROC_NULL   (-1)
@@ -16,21 +13,25 @@ index 1af5141..1fa230e 100644
  #define MPI_ROOT        (-3)
 +
 +#ifndef USE_WILDCARD
-+//for ease of development: fully qualified header to our marker library
-+//TODO changeme
-+#include "/home/tim/ancor-programm-traits/markers.h"
-+    //NO wildcards allowed
++
++// macros for the marker from markers.h
++#define MARKER_INTEGER_NAME_PREFIX marker_integer_
++#define marker(x) int CONCAT(MARKER_INTEGER_NAME_PREFIX,x);
++//  needed for correct macro expansion
++#define CONCAT(x,y) CONCAT2(x,y)
++#define CONCAT2(x,y) x##y
++
++//NO wildcards allowed: compilation fails on usage
 +#define MPI_ANY_SOURCE (-2) static_assert(0,"If you want to use matching wildcards: define USE_WILDCARD before including MPI header or compile with -DUSE_WILDCARD");
 +#define MPI_ANY_TAG (-1) static_assert(0,"If you want to use matching wildcards: define USE_WILDCARD before including MPI header or compile with -DUSE_WILDCARD");
-+
++// add the marker
 +marker(no_wildcard)
-+    #else
++
++#else
 +// normal mode with wildcards enabled
 +#define MPI_ANY_SOURCE 	(-2)
  #define MPI_ANY_TAG     (-1)
-+    #endif
-+
-+
++#endif
  
  #define MPI_BOTTOM      (void *)0
  #define MPI_IN_PLACE  (void *) -1

@@ -1,3 +1,5 @@
+#include "mpi_wrapper.h"
+
 #include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -8,6 +10,7 @@
 marker(no_wildcard)
 // this wrapper lib has no wildcards
 #include <mpi.h>
+
 
 
 #ifndef _EXTERN_C_
@@ -63,10 +66,10 @@ void check_wildcard_usage_information() {
         options.num_libraies_to_skip = 3;
         options.libraies_to_skip = malloc(3 * sizeof(char *));
         // these libraries internal to MPICH use dlopen (we know that they do not dynamically load something that will interfere with wildcard matching)
-        options.libraies_to_skip[0] = "/home/tim/mpich/install/lib/libmpi.so.12";
-        options.libraies_to_skip[1] = "/lib/x86_64-linux-gnu/libibverbs.so.1";
+        options.libraies_to_skip[0] = LIBMPI_LOCATION;
+        options.libraies_to_skip[1] = LIBVERBS_LOCATION;
         // TODO problem if the user uses libltdl to dlopen something (lt_dlopen), we would not catch it anymore
-        options.libraies_to_skip[2] = "/lib/x86_64-linux-gnu/libltdl.so.7";
+        options.libraies_to_skip[2] = LIBTLDL_LOCATION;
 
         no_wildcard_trait_handle = register_trait(&options);
         free(options.symbols_require_trait);

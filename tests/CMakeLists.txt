@@ -1,6 +1,7 @@
 
 # modified stub library for testing
 add_library(modified_mpi SHARED modified_mpi/mpi_lib.c)
+target_include_directories(modified_mpi PUBLIC ${PROGRAM_TRAITS_INCLUDE_DIR})
 target_link_libraries(modified_mpi PRIVATE ancor_programm_traits)
 
 # normal stub library

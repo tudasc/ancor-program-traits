@@ -4,14 +4,14 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "../../program_traits.h"
+#include "program_traits.h"
 
 #define USE_WILDCARD
 marker(no_wildcard)
 // the usages of wildcard inside the MPI lib itself is permitted
 
 #include "mpi_lib.h"
-#include "../../program_traits.h"
+#include "program_traits.h"
 
 int allow_wildcard_usage = 1;
 trait_handle_type no_wildcard_trait_handle;

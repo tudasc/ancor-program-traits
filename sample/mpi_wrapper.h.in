@@ -1,0 +1,10 @@
+#ifndef MPI_WRAPPER_H
+#define MPI_WRAPPER_H
+
+// this points to libraries that we know do not interefere with wildcard usage, but may contain wildcards (such as MPI itself) or use dlopen
+// this is set at configure time
+#cmakedefine LIBVERBS_LOCATION "@LIBVERBS_LOCATION@"
+#cmakedefine LIBTLDL_LOCATION "@LIBTLDL_LOCATION@"
+#cmakedefine LIBMPI_LOCATION "@LIBMPI_LOCATION@"
+
+#endif //MPI_WRAPPER_H

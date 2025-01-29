@@ -1,7 +1,6 @@
 #ifndef EXAMPLE_MPI_LIB_H
 #define EXAMPLE_MPI_LIB_H
 
-#include "../../program_traits.h"
 #include <assert.h>
 
 
@@ -13,6 +12,13 @@ void sample_mpi_finalize();
 
 
 #ifndef USE_WILDCARD
+
+// from markers.h:
+#define marker(x) int CONCAT(MARKER_INTEGER_NAME_PREFIX,x);
+//  needed for correct macro expansion
+#define CONCAT(x,y) CONCAT2(x,y)
+#define CONCAT2(x,y) x##y
+
 //NO wildcards allowed
 #define MATCHING_WILDCARD -1 static_assert(0,"If you want to use matching wildcards: define USE_WILDCARD before including MPI header or compile with -DUSE_WILDCARD");
 

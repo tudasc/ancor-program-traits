@@ -190,13 +190,13 @@ int trait_evaluation_callback(struct dl_phdr_info *info, size_t size, void *data
                             has_marker = TRUE;
                         }
                         if (trait->options.check_for_dlopen && strcmp(sym_name, "dlopen") == 0 && strcmp(
-                                lib_name, LIBDL) != 0) {
+                                lib_name, LIBDL_LOCATION) != 0) {
                             printf("Library %d: %s: Found dlopen\n", library_count, lib_name);
                             trait->is_true = FALSE;
                             return 1; // abort
                         }
                         if (trait->options.check_for_mprotect && strcmp(sym_name, "mprotect") == 0 && strcmp(
-                                lib_name, LIBC) != 0) {
+                                lib_name, LIBC_LOCATION) != 0) {
                             printf("Library %d: %s: Found mprotect\n", library_count, lib_name);
                             trait->is_true = FALSE;
                             return 1; // abort
