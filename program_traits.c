@@ -7,6 +7,9 @@
 #include <string.h>
 
 #include <sys/auxv.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #include <link.h>
 #include <elf.h>
@@ -76,6 +79,24 @@ static uint32_t GetNumberOfSymbolsFromGnuHash(Elf64_Addr gnuHashAddress) {
     return lastSymbol;
 }
 
+bool is_libc(const char *lib_name) {
+    struct stat stat_lib_to_analyze = {0};
+    stat(lib_name, &stat_lib_to_analyze);
+    struct stat stat_libc = {0};
+    stat(LIBC_LOCATION, &stat_libc);
+    return (stat_lib_to_analyze.st_dev == stat_libc.st_dev &&
+            stat_lib_to_analyze.st_ino == stat_libc.st_ino);
+}
+
+bool is_libdl(const char *lib_name) {
+    struct stat stat_lib_to_analyze = {0};
+    stat(lib_name, &stat_lib_to_analyze);
+    struct stat stat_libdl = {0};
+    stat(LIBC_LOCATION, &stat_libdl);
+    return (stat_lib_to_analyze.st_dev == stat_libdl.st_dev &&
+            stat_lib_to_analyze.st_ino == stat_libdl.st_ino);
+}
+
 bool check_skip_library(struct dl_phdr_info *info, struct trait_results *trait) {
     const char *lib_name = strlen(info->dlpi_name) == 0 ? "(main binary)" : info->dlpi_name;
 
@@ -90,16 +111,25 @@ bool check_skip_library(struct dl_phdr_info *info, struct trait_results *trait) 
     }
 
     // skip main binary if indicated
-    if (trait->options.skip_main_binary && strlen(info->dlpi_name) == 0) {
-        // skip main binary
-        printf("Library %d: %s: skip\n", library_count, lib_name);
-        return true;
+    if (strlen(info->dlpi_name) == 0) {
+        if (trait->options.skip_main_binary) {
+            // skip main binary
+            printf("Library %d: %s: skip\n", library_count, lib_name);
+            return true;
+        } else {
+            return false;
+        }
     }
 
     // check if it is in list of skipped binaries
+    struct stat stat_lib_to_analyze = {0};
+    stat(lib_name, &stat_lib_to_analyze);
 
     for (unsigned int i = 0; i < trait->options.num_libraies_to_skip; ++i) {
-        if (strcmp(trait->options.libraies_to_skip[i], lib_name) == 0) {
+        struct stat stat_lib_to_skip = {0};
+        stat(trait->options.libraies_to_skip[i], &stat_lib_to_skip);
+        if (stat_lib_to_analyze.st_dev == stat_lib_to_skip.st_dev && stat_lib_to_analyze.st_ino == stat_lib_to_skip.
+            st_ino) {
             printf("Library %d: %s: skip\n", library_count, lib_name);
             return true;
         }
@@ -189,14 +219,12 @@ int trait_evaluation_callback(struct dl_phdr_info *info, size_t size, void *data
                             printf("Library %d: %s: Found Marker\n", library_count, lib_name);
                             has_marker = TRUE;
                         }
-                        if (trait->options.check_for_dlopen && strcmp(sym_name, "dlopen") == 0 && strcmp(
-                                lib_name, LIBDL_LOCATION) != 0) {
+                        if (trait->options.check_for_dlopen && strcmp(sym_name, "dlopen") == 0 && ! is_libdl(lib_name)) {
                             printf("Library %d: %s: Found dlopen\n", library_count, lib_name);
                             trait->is_true = FALSE;
                             return 1; // abort
                         }
-                        if (trait->options.check_for_mprotect && strcmp(sym_name, "mprotect") == 0 && strcmp(
-                                lib_name, LIBC_LOCATION) != 0) {
+                        if (trait->options.check_for_mprotect && strcmp(sym_name, "mprotect") == 0 && ! is_libc(lib_name)) {
                             printf("Library %d: %s: Found mprotect\n", library_count, lib_name);
                             trait->is_true = FALSE;
                             return 1; // abort
@@ -236,9 +264,6 @@ int trait_evaluation_callback(struct dl_phdr_info *info, size_t size, void *data
 
     // nonzero ABORTs reading in the other libraries
 }
-
-// from dlfcn.h but with weak linkeage to check for its presence at runtime
-__attribute__((weak)) void *dlopen(const char *filename, int flag);
 
 void evaluate_trait(trait_handle_type trait) {
     assert(g_ptr_array_find(all_traits, trait, NULL));
@@ -286,11 +311,11 @@ trait_handle_type register_trait(struct trait_options *options) {
 
     handle->options.check_for_dlopen = options->check_for_dlopen;
     handle->options.check_for_mprotect = options->check_for_mprotect;
-    if (options->num_libraies_to_skip>0){
+    if (options->num_libraies_to_skip > 0) {
         handle->options.num_libraies_to_skip = options->num_libraies_to_skip;
         handle->options.libraies_to_skip = malloc(options->num_libraies_to_skip * sizeof(char *));
         for (unsigned int i = 0; i < options->num_libraies_to_skip; ++i) {
-            char *new_buf = malloc(strlen(options->libraies_to_skip[i]) + 1);// +1 for null terminator
+            char *new_buf = malloc(strlen(options->libraies_to_skip[i]) + 1); // +1 for null terminator
             strcpy(new_buf, options->libraies_to_skip[i]);
             handle->options.libraies_to_skip[i] = new_buf;
         }
