@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "../../program_traits.h"
 
@@ -22,7 +23,7 @@ void check_wildcard_usage_information() {
     if (!initialized) {
 
         printf("Check wildcard usage\n");
-        struct trait_options options;
+        struct trait_options options = {0};
         options.name = "no_wildcard";
         options.num_symbols_require_trait = 1;
 

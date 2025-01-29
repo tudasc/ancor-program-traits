@@ -49,7 +49,7 @@ void check_wildcard_usage_information() {
     // after initalization we ignore extra information
     if (!initialized) {
         printf("Check wildcard usage\n");
-        struct trait_options options;
+        struct trait_options options = {0};
         options.name = "no_wildcard";
         options.num_symbols_require_trait = 1;
 
@@ -60,8 +60,13 @@ void check_wildcard_usage_information() {
         options.skip_main_binary = false;
         options.check_for_dlopen = true;
         options.check_for_mprotect = true;
+        options.num_libraies_to_skip = 1;
+        options.libraies_to_skip = malloc(1 * sizeof(char *));
+        options.libraies_to_skip[0] = "/home/tim/mpich/install/lib/libmpi.so.12";
+
         no_wildcard_trait_handle = register_trait(&options);
         free(options.symbols_require_trait);
+        free(options.libraies_to_skip);
 
 
         if (check_trait(no_wildcard_trait_handle)) {
