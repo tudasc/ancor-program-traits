@@ -20,4 +20,5 @@ target_link_libraries(ancor_programm_traits ${GLIB_LDFLAGS})
 target_link_libraries(ancor_programm_traits dl)
 
 
+add_subdirectory(tests)
 add_subdirectory(sample)
