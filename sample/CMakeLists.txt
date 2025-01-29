@@ -1,17 +1,17 @@
 
 include(ExternalProject)
 
-set(MPICH_CONFIGURE_FLAGS "")
-
 # wildcards inside of the MPI implementation are allowed, otherwise MPI will not compile
 set(MPICH_CFLAGS "${CMAKE_C_FLAGS} -DUSE_WILDCARD")
+
+set(MPICH_CONFIGURE_FLAGS "")
 
 ExternalProject_Add(
         mpich
         URL https://www.mpich.org/static/downloads/4.2.3/mpich-4.2.3.tar.gz
         URL_HASH MD5=b0c2a9690ce5325d69b7022219d94f64
         CONFIGURE_COMMAND
-        <SOURCE_DIR>/configure --prefix <INSTALL_DIR> CC=${CMAKE_C_COMPILER} FLAGS=${MPICH_CFLAGS} ${MPICH_CONFIGURE_FLAGS}
+        <SOURCE_DIR>/configure --prefix <INSTALL_DIR> CC=${CMAKE_C_COMPILER} CFLAGS=${MPICH_CFLAGS} ${MPICH_CONFIGURE_FLAGS}
         PATCH_COMMAND patch -b <SOURCE_DIR>/src/include/mpi.h.in ${CMAKE_CURRENT_SOURCE_DIR}/mpi.h.in.patch
         BUILD_COMMAND make -j ${CMAKE_BUILD_PARALLEL_LEVEL}
         INSTALL_COMMAND make install
