@@ -60,9 +60,13 @@ void check_wildcard_usage_information() {
         options.skip_main_binary = false;
         options.check_for_dlopen = true;
         options.check_for_mprotect = true;
-        options.num_libraies_to_skip = 1;
-        options.libraies_to_skip = malloc(1 * sizeof(char *));
+        options.num_libraies_to_skip = 3;
+        options.libraies_to_skip = malloc(3 * sizeof(char *));
+        // these libraries internal to MPICH use dlopen (we know that they do not dynamically load something that will interfere with wildcard matching)
         options.libraies_to_skip[0] = "/home/tim/mpich/install/lib/libmpi.so.12";
+        options.libraies_to_skip[1] = "/lib/x86_64-linux-gnu/libibverbs.so.1";
+        // TODO problem if the user uses libltdl to dlopen something (lt_dlopen), we would not catch it anymore
+        options.libraies_to_skip[2] = "/lib/x86_64-linux-gnu/libltdl.so.7";
 
         no_wildcard_trait_handle = register_trait(&options);
         free(options.symbols_require_trait);
