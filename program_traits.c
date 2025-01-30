@@ -203,7 +203,7 @@ int trait_evaluation_callback(struct dl_phdr_info *info, size_t size, void *data
                          * This is located at the address of st_name
                          * relative to the beginning of the string table. */
                         sym_name = &strtab[sym[sym_index].st_name];
-                        //printf("%d\n", sym_index);
+                        //printf("%s\n", sym_name);
 
                         //parse_symbol_table_name
                         if (strcmp(sym_name, trait->marker_to_look_for) == 0) {
