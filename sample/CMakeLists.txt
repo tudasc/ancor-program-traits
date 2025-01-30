@@ -65,7 +65,8 @@ target_include_directories(mpi_wrapper_lib PRIVATE ${LIB_SRC_DIR})
 add_test(NAME mpi_hello_world
         # compile and run with our wrapper loaded as a normal pmpi tool
         COMMAND bash -c "${MPICC} ${CMAKE_CURRENT_SOURCE_DIR}/mpi_hello_world.c ; \
-            LD_PRELOAD=${mpi_wrapper_lib} ${MPIRUN} ./a.out ; "
+            LD_PRELOAD=$<TARGET_FILE:mpi_wrapper_lib> ${MPIRUN} ./a.out ; "
+        PASS_REGULAR_EXPRESSION "MPI Initialized with wildcards DISabled"
 )
 
 
