@@ -108,6 +108,18 @@ _EXTERN_C_ int MPI_Init(int *argc, char ***argv) {
     return PMPI_Init(argc, argv);
 }
 
+/* ================== C Wrappers for MPI_Init_thread ================== */
+_EXTERN_C_ int PMPI_Init_thread(int *argc, char ***argv, int required, int *provided);
+
+_EXTERN_C_ int MPI_Init_thread(int *argc, char ***argv, int required, int *provided) {
+    assert(initialized == 0);
+    // check if wildcards are needed
+    check_wildcard_usage_information();
+    initialized = 1;
+    printf("MPI Initialized with wildcards %s\n", allow_wildcard_usage ? "ENabled" : "DISabled");
+    return PMPI_Init_thread(argc, argv, required, provided);
+}
+
 /* ================== C Wrappers for MPI_Recv ================== */
 _EXTERN_C_ int PMPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
                          MPI_Comm comm, MPI_Status *status);
