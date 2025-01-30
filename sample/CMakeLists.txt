@@ -79,4 +79,43 @@ add_test(NAME mpi_hello_world
 # the other test will build the binary, so it needs to successfully complete first
 set_tests_properties(mpi_hello_world PROPERTIES DEPENDS mpi_hello_world_with_wrapper)
 
+option(BUILD_MINI_APPS "Build Mini-Apps with the PMPI wrapper" ON)
+
+
+if (BUILD_MINI_APPS)
+
+    ExternalProject_Add(
+            lulesh
+            GIT_REPOSITORY https://github.com/LLNL/LULESH.git
+            GIT_TAG
+            CMAKE_ARGS
+            -DCMAKE_C_COMPILER=${MPICC}
+            -DCMAKE_CXX_COMPILER=${MPICXX}
+            -DMPI_ROOT=${MPICH_INSTALL_DIR}
+            DEPENDS mpich
+            INSTALL_COMMAND ""
+    )
+    ExternalProject_Get_Property(lulesh BINARY_DIR)
+    set(LULESH_EXE ${BINARY_DIR}/lulesh2.0)
+
+    #without LD_PRELOAD
+    add_test(NAME lulesh
+            # compile and run with our wrapper loaded as a normal pmpi tool
+            COMMAND bash -c "${MPIRUN} -n 8 ${LULESH_EXE} -s 10 -i 10"
+            PROCESSORS 8
+            PASS_REGULAR_EXPRESSION "Run completed:"
+    )
+    set_property(TEST lulesh PROPERTY ENVIRONMENT "OMP_NUM_THREADS=1")
+
+    #with out wrapper
+    add_test(NAME lulesh_with_wrapper
+            # compile and run with our wrapper loaded as a normal pmpi tool
+            COMMAND bash -c "LD_PRELOAD=$<TARGET_FILE:mpi_wrapper_lib> ${MPIRUN} -n 8 ${LULESH_EXE} -s 10 -i 10"
+            PROCESSORS 8
+            PASS_REGULAR_EXPRESSION "Run completed:"
+    )
+    set_property(TEST lulesh_with_wrapper PROPERTY ENVIRONMENT "OMP_NUM_THREADS=1")
+
+
+endif ()
 
