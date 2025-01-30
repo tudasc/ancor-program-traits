@@ -53,7 +53,7 @@ void check_wildcard_usage_information() {
         printf("Check wildcard usage\n");
         struct trait_options options = {0};
         options.name = "no_wildcard";
-        options.num_symbols_require_trait = 1;
+        options.num_symbols_require_trait = 2;
 
         options.symbols_require_trait = malloc(2 * sizeof(char *));
         options.symbols_require_trait[0] = "MPI_Recv";
