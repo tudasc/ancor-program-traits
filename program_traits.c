@@ -35,7 +35,7 @@ GPtrArray *all_traits;
 // only works for 64 bit
 static_assert(sizeof(ElfW(Addr)) == sizeof(Elf64_Addr));
 
-static uint32_t GetNumberOfSymbolsFromGnuHash(Elf64_Addr gnuHashAddress) {
+static uint32_t GetNumberOfSymbolsFromGnuHash(const Elf64_Addr gnuHashAddress) {
     // See https://flapenguin.me/2017/05/10/elf-lookup-dt-gnu-hash/ and
     // https://sourceware.org/ml/binutils/2006-10/msg00377.html
     typedef struct {
