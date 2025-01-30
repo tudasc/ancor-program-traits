@@ -102,19 +102,24 @@ if (BUILD_MINI_APPS)
     add_test(NAME lulesh
             # compile and run with our wrapper loaded as a normal pmpi tool
             COMMAND bash -c "${MPIRUN} -n 8 ${LULESH_EXE} -s 10 -i 10"
-            PROCESSORS 8
-            PASS_REGULAR_EXPRESSION "Run completed:"
+
     )
-    set_property(TEST lulesh PROPERTY ENVIRONMENT "OMP_NUM_THREADS=1")
+    set_property(TEST lulesh PROPERTY ENVIRONMENT)
+    set_tests_properties(lulesh PROPERTIES
+            ENVIRONMENT "OMP_NUM_THREADS=1"
+            PROCESSORS 8
+            PASS_REGULAR_EXPRESSION "Run completed:")
 
     #with out wrapper
     add_test(NAME lulesh_with_wrapper
             # compile and run with our wrapper loaded as a normal pmpi tool
             COMMAND bash -c "LD_PRELOAD=$<TARGET_FILE:mpi_wrapper_lib> ${MPIRUN} -n 8 ${LULESH_EXE} -s 10 -i 10"
-            PROCESSORS 8
-            PASS_REGULAR_EXPRESSION "Run completed:"
+
     )
-    set_property(TEST lulesh_with_wrapper PROPERTY ENVIRONMENT "OMP_NUM_THREADS=1")
+    set_tests_properties(lulesh_with_wrapper PROPERTIES
+            ENVIRONMENT "OMP_NUM_THREADS=1"
+            PROCESSORS 8
+            PASS_REGULAR_EXPRESSION "MPI Initialized with wildcards DISabled")
 
 
 endif ()
