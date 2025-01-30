@@ -8,12 +8,14 @@
 
 int main(int argc, char **argv)
 {
-    int node;
+    int rank;
 
     MPI_Init(&argc,&argv);
-    MPI_Comm_rank(MPI_COMM_WORLD, &node);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-    printf("Hello World from Node %d\n",node);
+    if (rank==0){
+      printf("Hello World from Rank %d\n",rank);
+    }
 
     MPI_Finalize();
 }

@@ -62,11 +62,21 @@ get_target_property(LIB_SRC_DIR ancor_programm_traits SOURCE_DIR)
 target_include_directories(mpi_wrapper_lib PRIVATE ${LIB_SRC_DIR})
 
 
-add_test(NAME mpi_hello_world
+add_test(NAME mpi_hello_world_with_wrapper
         # compile and run with our wrapper loaded as a normal pmpi tool
         COMMAND bash -c "${MPICC} ${CMAKE_CURRENT_SOURCE_DIR}/mpi_hello_world.c ; \
-            LD_PRELOAD=$<TARGET_FILE:mpi_wrapper_lib> ${MPIRUN} ./a.out ; "
+            LD_PRELOAD=$<TARGET_FILE:mpi_wrapper_lib> ${MPIRUN} -n 2 ./a.out ; "
+        PROCESSORS 2
         PASS_REGULAR_EXPRESSION "MPI Initialized with wildcards DISabled"
 )
+#without LD_PRELOAD
+add_test(NAME mpi_hello_world
+        # compile and run with our wrapper loaded as a normal pmpi tool
+        COMMAND bash -c "${MPIRUN} -n 2 ./a.out ; "
+        PROCESSORS 2
+        PASS_REGULAR_EXPRESSION "Hello World from Rank 0"
+)
+# the other test will build the binary, so it needs to successfully complete first
+set_tests_properties(mpi_hello_world PROPERTIES DEPENDS mpi_hello_world_with_wrapper)
 
 
