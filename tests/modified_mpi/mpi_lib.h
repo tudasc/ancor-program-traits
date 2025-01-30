@@ -12,7 +12,7 @@ void sample_mpi_finalize();
 
 
 #ifndef USE_WILDCARD
-
+#define MARKER_INTEGER_NAME_PREFIX marker_integer_
 // from markers.h:
 #define marker(x) int CONCAT(MARKER_INTEGER_NAME_PREFIX,x);
 //  needed for correct macro expansion
