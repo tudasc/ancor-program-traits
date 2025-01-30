@@ -72,7 +72,7 @@ add_test(NAME mpi_hello_world_with_wrapper
 #without LD_PRELOAD
 add_test(NAME mpi_hello_world
         # compile and run with our wrapper loaded as a normal pmpi tool
-        COMMAND bash -c "${MPIRUN} -n 2 ./a.out ; "
+        COMMAND bash -c "${MPIRUN} -n 2 ./a.out"
         PROCESSORS 2
         PASS_REGULAR_EXPRESSION "Hello World from Rank 0"
 )
