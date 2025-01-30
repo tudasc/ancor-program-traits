@@ -15,7 +15,20 @@ include_directories(${GLIB_INCLUDE_DIRS})
 
 
 # find special libraries to ignore when searching for dlopen and mprotect
-find_library(LIBC_LOCATION libc.so)
+#find_library(LIBC_LOCATION libc.so) # does not work, as it points to the gnu linker script and not the object file
+# but ldd will show the correct path
+execute_process(
+        COMMAND ldd ${CMAKE_C_COMPILER}
+        COMMAND grep "libc.so"
+        COMMAND awk "{print \$3}"
+        OUTPUT_VARIABLE LIBC_LOCATION
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+if (NOT LIBC_LOCATION)
+    message(FATAL_ERROR "Could not determine libc shared library path")
+endif()
+
 find_library(LIBDL_LOCATION libdl.so)
 
 configure_file(program_traits.h.in program_traits.h @ONLY)
