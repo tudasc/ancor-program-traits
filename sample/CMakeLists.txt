@@ -87,7 +87,7 @@ if (BUILD_MINI_APPS)
     ExternalProject_Add(
             lulesh
             GIT_REPOSITORY https://github.com/LLNL/LULESH.git
-            GIT_TAG
+            GIT_TAG 3e01c40b3281aadb7f996525cdd4a3354f6d3801
             CMAKE_ARGS
             -DCMAKE_C_COMPILER=${MPICC}
             -DCMAKE_CXX_COMPILER=${MPICXX}
@@ -100,11 +100,9 @@ if (BUILD_MINI_APPS)
 
     #without LD_PRELOAD
     add_test(NAME lulesh
-            # compile and run with our wrapper loaded as a normal pmpi tool
             COMMAND bash -c "${MPIRUN} -n 8 ${LULESH_EXE} -s 10 -i 10"
 
     )
-    set_property(TEST lulesh PROPERTY ENVIRONMENT)
     set_tests_properties(lulesh PROPERTIES
             ENVIRONMENT "OMP_NUM_THREADS=1"
             PROCESSORS 8
@@ -112,13 +110,42 @@ if (BUILD_MINI_APPS)
 
     #with out wrapper
     add_test(NAME lulesh_with_wrapper
-            # compile and run with our wrapper loaded as a normal pmpi tool
+            # run with our wrapper loaded as a normal pmpi tool
             COMMAND bash -c "LD_PRELOAD=$<TARGET_FILE:mpi_wrapper_lib> ${MPIRUN} -n 8 ${LULESH_EXE} -s 10 -i 10"
 
     )
     set_tests_properties(lulesh_with_wrapper PROPERTIES
             ENVIRONMENT "OMP_NUM_THREADS=1"
             PROCESSORS 8
+            PASS_REGULAR_EXPRESSION "MPI Initialized with wildcards DISabled")
+
+    # AMG
+    ExternalProject_Add(
+            AMG
+            GIT_REPOSITORY https://github.com/LLNL/AMG.git
+            GIT_TAG 1.2
+            CONFIGURE_COMMAND sed -i s!^CC[[:space:]]*=.*!CC=${MPICC}! <SOURCE_DIR>/Makefile.include
+            BUILD_IN_SOURCE 1
+            BUILD_COMMAND make -j ${CMAKE_BUILD_PARALLEL_LEVEL}
+            DEPENDS mpich
+            INSTALL_COMMAND ""
+    )
+    ExternalProject_Get_Property(AMG SOURCE_DIR)
+    set(AMG_EXE ${SOURCE_DIR}/test/amg)
+
+    add_test(NAME amg
+            COMMAND bash -c "${MPIRUN} -n 2 ${AMG_EXE}")
+    set_tests_properties(amg PROPERTIES
+            PROCESSORS 2
+            ENVIRONMENT "OMP_NUM_THREADS=1")
+
+    #with out wrapper
+    add_test(NAME amg_with_wrapper
+            # run with our wrapper loaded as a normal pmpi tool
+            COMMAND bash -c "LD_PRELOAD=$<TARGET_FILE:mpi_wrapper_lib> ${MPIRUN} -n 2 ${AMG_EXE}")
+    set_tests_properties(amg_with_wrapper PROPERTIES
+            PROCESSORS 2
+            ENVIRONMENT "OMP_NUM_THREADS=1"
             PASS_REGULAR_EXPRESSION "MPI Initialized with wildcards DISabled")
 
 
