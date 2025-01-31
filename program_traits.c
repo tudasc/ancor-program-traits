@@ -79,6 +79,123 @@ static uint32_t GetNumberOfSymbolsFromGnuHash(const Elf64_Addr gnuHashAddress) {
     return lastSymbol;
 }
 
+// from: https://stackoverflow.com/questions/4031672/without-access-to-argv0-how-do-i-get-the-program-name
+char *get_program_path() {
+    char *path = malloc(PATH_MAX);
+    if (path != NULL) {
+        if (readlink("/proc/self/exe", path, PATH_MAX) == -1) {
+            free(path);
+            path = NULL;
+        }
+    }
+    return path;
+}
+
+// return 0 if program executable has the desired trait
+int check_static_symbol_table_of_main_binary(struct trait_results *trait) {
+    char *program_path = get_program_path();
+    if (program_path == NULL) {
+        assert(trait->is_true==FALSE);
+        return 1;
+    }
+    // file exists
+    if (access(program_path, F_OK) != 0) {
+        free(program_path);
+        return 1;
+    }
+
+    FILE *file = fopen(program_path, "rb");
+    if (!file) {
+        free(program_path);
+        assert(trait->is_true==FALSE);
+        return 1;
+    }
+    ElfW(Ehdr) ehdr;
+    // Read ELF header
+    if (fread(&ehdr, 1, sizeof(ElfW(Ehdr)), file) != sizeof(ElfW(Ehdr))) {
+        // failed to read elf header
+        free(program_path);
+        assert(trait->is_true==FALSE);
+        return 1;
+    }
+    // Check ELF magic bytes
+    if (ehdr.e_ident[EI_MAG0] != ELFMAG0 ||
+        ehdr.e_ident[EI_MAG1] != ELFMAG1 ||
+        ehdr.e_ident[EI_MAG2] != ELFMAG2 ||
+        ehdr.e_ident[EI_MAG3] != ELFMAG3) {
+        //Not a valid ELF file
+        free(program_path);
+        assert(trait->is_true==FALSE);
+        return 1;
+    }
+
+
+    // Seek to section header table
+    fseek(file, ehdr.e_shoff, SEEK_SET);
+
+    ElfW(Shdr) shdr;
+    ElfW(Shdr) symtab, strtab;
+    int found_symtab = 0, found_strtab = 0;
+
+    // Find the symbol table and string table sections
+    for (int i = 0; i < ehdr.e_shnum; i++) {
+        fread(&shdr, 1, sizeof(shdr), file);
+        if (shdr.sh_type == SHT_SYMTAB) {
+            symtab = shdr;
+            found_symtab = 1;
+
+            //TODO fseek to the strtab linked in ymtab.sh_link?
+        } else if (shdr.sh_type == SHT_STRTAB && i == symtab.sh_link) {
+            assert(!found_strtab);
+            strtab = shdr;
+            found_strtab = 1;
+        }
+    }
+
+    if (!found_symtab || !found_strtab) {
+        // did not find the symbol table or the string table with the names
+        assert(trait->is_true==FALSE);
+        free(program_path);
+        return 1;
+    }
+
+    // Read the symbol table
+    fseek(file, symtab.sh_offset, SEEK_SET);
+    int num_symbols = symtab.sh_size / symtab.sh_entsize;
+    ElfW(Sym) *symbols = malloc(symtab.sh_size);
+
+    fread(symbols, 1, symtab.sh_size, file);
+
+    // Read the string table
+    fseek(file, strtab.sh_offset, SEEK_SET);
+    char *strtab_data = malloc(strtab.sh_size);
+    fread(strtab_data, 1, strtab.sh_size, file);
+
+    // read symbol names
+    for (int i = 0; i < num_symbols; i++) {
+        char *sym_name = &strtab_data[symbols[i].st_name];
+        if (strcmp(sym_name, trait->marker_to_look_for) == 0) {
+            //marker found
+            trait->is_true = TRUE;
+            printf("Library %d: %s: Found Marker (in static symbol table)\n", library_count, "(main Binary)");
+            trait->is_true = TRUE;
+            free(symbols);
+            free(strtab_data);
+            free(program_path);
+
+            return 0;
+        }
+    }
+
+    free(symbols);
+    free(strtab_data);
+    free(program_path);
+    assert(trait->is_true==FALSE);
+    printf("Library: %s: DOES NOT have the Trait (even in static symbol table)\n", "(main Binary)");
+    return 1;
+}
+
+
 bool is_same_lib(const char *lib_name_a, const char *lib_name_b) {
     struct stat stat_lib_a = {0};
     stat(lib_name_a, &stat_lib_a);
@@ -243,10 +360,17 @@ int trait_evaluation_callback(struct dl_phdr_info *info, size_t size, void *data
     }
     if (!has_marker) {
         if (has_required_symbol) {
-            trait->is_true = FALSE;
-            printf("Library: %s: DOES NOT have the Trait\n", lib_name);
-            // found violation: abort
-            return 1;
+            if (strlen(info->dlpi_name) == 0) {
+                // is main binary
+                //sometimes the marker symbol is not in the dynamic symbol table, check if we find it in the static one
+                return check_static_symbol_table_of_main_binary(trait);
+                //will set trait->is_true appropriately
+            } else {
+                trait->is_true = FALSE;
+                printf("Library: %s: DOES NOT have the Trait\n", lib_name);
+                // found violation: abort
+                return 1;
+            }
         } else {
             // has none of the symbols that require the trait
             printf("Library %d: %s: trait not required\n", library_count, lib_name);
