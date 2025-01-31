@@ -1,10 +1,17 @@
 #ifndef ANCOR_PROGRAMM_TRAITS_MARKERS_H
 #define ANCOR_PROGRAMM_TRAITS_MARKERS_H
 
-#define MARKER_INTEGER_NAME_PREFIX marker_integer_
+#ifdef __GNUC__  // GCC/Clang specific: prevent compiler form optimizing away the marker
+#define ATTRS __attribute__((used,visibility("default"))) inline
+#else
+#define ATTRS
+#endif
+//TODO this does always lead to a compiler warning about inline, which unfortunately cannot be suppressed by a pragma
 
-// use this macro
-#define marker(x) int CONCAT(MARKER_INTEGER_NAME_PREFIX,x);
+#define MARKER_INTEGER_NAME_PREFIX marker_integer_
+// from markers.h:
+#define marker(x)  ATTRS int CONCAT(MARKER_INTEGER_NAME_PREFIX,x);
+
 
 //  needed for correct macro expansion
 #define CONCAT(x,y) CONCAT2(x,y)

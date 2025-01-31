@@ -138,17 +138,17 @@ int check_static_symbol_table_of_main_binary(struct trait_results *trait) {
     int found_symtab = 0, found_strtab = 0;
 
     // Find the symbol table and string table sections
-    for (int i = 0; i < ehdr.e_shnum; i++) {
-        fread(&shdr, 1, sizeof(shdr), file);
+    for (unsigned int i = 0; i < ehdr.e_shnum; i++) {
+        fread(&shdr, 1, sizeof(ElfW(Shdr)), file);
         if (shdr.sh_type == SHT_SYMTAB) {
             symtab = shdr;
             found_symtab = 1;
-
-            //TODO fseek to the strtab linked in ymtab.sh_link?
-        } else if (shdr.sh_type == SHT_STRTAB && i == symtab.sh_link) {
-            assert(!found_strtab);
-            strtab = shdr;
-            found_strtab = 1;
+            // found the symbol table, need to get the associated string table for the names
+            fseek(file, ehdr.e_shoff + sizeof(ElfW(Shdr)) * symtab.sh_link, SEEK_SET);
+            fread(&strtab, 1, sizeof(ElfW(Shdr)), file);
+            if (strtab.sh_type == SHT_STRTAB) {
+                found_strtab = 1;
+            }
         }
     }
 
@@ -174,9 +174,9 @@ int check_static_symbol_table_of_main_binary(struct trait_results *trait) {
     // read symbol names
     for (int i = 0; i < num_symbols; i++) {
         char *sym_name = &strtab_data[symbols[i].st_name];
+        printf("%s\n", sym_name);
         if (strcmp(sym_name, trait->marker_to_look_for) == 0) {
             //marker found
-            trait->is_true = TRUE;
             printf("Library %d: %s: Found Marker (in static symbol table)\n", library_count, "(main Binary)");
             trait->is_true = TRUE;
             free(symbols);

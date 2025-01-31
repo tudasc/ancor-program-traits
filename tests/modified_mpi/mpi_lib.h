@@ -12,9 +12,15 @@ void sample_mpi_finalize();
 
 
 #ifndef USE_WILDCARD
+#ifdef __GNUC__  // GCC/Clang specific: prevent compiler form optimizing away the marker
+#define ATTRS __attribute__((used,visibility("default"))) inline
+#else
+#define ATTRS
+#endif
+
 #define MARKER_INTEGER_NAME_PREFIX marker_integer_
 // from markers.h:
-#define marker(x) int CONCAT(MARKER_INTEGER_NAME_PREFIX,x);
+#define marker(x)  ATTRS int CONCAT(MARKER_INTEGER_NAME_PREFIX,x);
 //  needed for correct macro expansion
 #define CONCAT(x,y) CONCAT2(x,y)
 #define CONCAT2(x,y) x##y

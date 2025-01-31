@@ -7,16 +7,22 @@
   *     See COPYRIGHT in top-level directory
 @@ -500,9 +501,28 @@
  extern int * const MPI_WEIGHTS_EMPTY MPICH_API_PUBLIC;
- 
+
  #define MPI_PROC_NULL   (-1)
 -#define MPI_ANY_SOURCE 	(-2)
  #define MPI_ROOT        (-3)
 +
 +#ifndef USE_WILDCARD
 +
-+// macros for the marker from markers.h
++#ifdef __GNUC__  // GCC/Clang specific: prevent compiler form optimizing away the marker
++#define ATTRS __attribute__((used,visibility("default"))) inline
++#else
++#define ATTRS
++#endif
++
 +#define MARKER_INTEGER_NAME_PREFIX marker_integer_
-+#define marker(x) int CONCAT(MARKER_INTEGER_NAME_PREFIX,x);
++// from markers.h:
++#define marker(x)  ATTRS int CONCAT(MARKER_INTEGER_NAME_PREFIX,x);
 +//  needed for correct macro expansion
 +#define CONCAT(x,y) CONCAT2(x,y)
 +#define CONCAT2(x,y) x##y
