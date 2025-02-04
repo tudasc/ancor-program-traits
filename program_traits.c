@@ -344,7 +344,12 @@ int trait_evaluation_callback(struct dl_phdr_info *info, size_t size, void *data
                         }
                         if (trait->options.check_for_dlopen && strcmp(sym_name, "dlopen") == 0 && !is_libdl(lib_name)) {
 #ifdef HOOK_DLOPEN
-                            install_dlopen_plt_hook((void*)info->dlpi_addr);
+                            int status = install_dlopen_plt_hook((void*)info->dlpi_addr);
+                            if (status!=0) {
+                                printf("Library %d: %s: Found dlopen, Failed to install plthook\n", library_count, lib_name);
+                                trait->is_true = FALSE;
+                                return 1; // abort
+                            }
 #else
                             printf("Library %d: %s: Found dlopen\n", library_count, lib_name);
                             trait->is_true = FALSE;
