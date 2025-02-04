@@ -227,7 +227,6 @@ bool check_skip_library(struct dl_phdr_info *info, struct trait_results *trait) 
         assert(library_count == 2 && "You dont have the vdso as the first library???");
         // do not analyze the vDSO (virtual dynamic shared object), it is part of the linux kernel and always present in every process
         // TODO the manpage says that it is a fully fledged elf, but it segfaults when i try to read its symbol table
-        printf("Library %d: %s: skip\n", library_count, lib_name);
         return true;
     }
 
@@ -245,7 +244,6 @@ bool check_skip_library(struct dl_phdr_info *info, struct trait_results *trait) 
     if (strlen(info->dlpi_name) == 0) {
         if (trait->options.skip_main_binary) {
             // skip main binary
-            printf("Library %d: %s: skip\n", library_count, lib_name);
             return true;
         } else {
             return false;
@@ -255,7 +253,6 @@ bool check_skip_library(struct dl_phdr_info *info, struct trait_results *trait) 
     // check if it is in list of skipped binaries
     for (unsigned int i = 0; i < trait->options.num_libraies_to_skip; ++i) {
         if (is_same_lib(lib_name, trait->options.libraies_to_skip[i])) {
-            printf("Library %d: %s: skip\n", library_count, lib_name);
             return true;
         }
     }
@@ -277,6 +274,7 @@ int trait_evaluation_callback(struct dl_phdr_info *info, size_t size, void *data
     }
 
     if (check_skip_library(info, trait)) {
+        printf("Library %d: %s: skip\n", library_count, lib_name);
         return 0; // skip
     }
 
@@ -532,7 +530,7 @@ void evaluate_trait_on_dlopen(void* trait_data, void* filename) {
             evaluate_trait(trait);
         }
         if (!trait->is_true) {
-            printf("Trait violation found after dlopen (%s not satisfied anymore after loading %s)\n",trait->options.name,filename);
+            printf("Trait violation found after dlopen (%s not satisfied anymore after loading %s)\n",trait->options.name,(char*)filename);
             printf("Aborting...\n");
             exit(EXIT_FAILURE);
         }
