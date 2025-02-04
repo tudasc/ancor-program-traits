@@ -19,6 +19,7 @@ int main(int argc, char **argv) {
     printf("dlopen: %s\n",LIBRARY_TO_LOAD);
 
     // dynamically open the library
+    printf("Use dlopen\n");
     void* handle = dlopen(LIBRARY_TO_LOAD, RTLD_LAZY);
     func_ptr_type init = dlsym(handle, "init_library");
     func_ptr_type perform = dlsym(handle, "perform_operation");

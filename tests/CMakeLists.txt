@@ -196,16 +196,13 @@ add_dynamic_wrapper_testcase_2(wrapper_test_16 example_app_4.c normal_mpi modifi
 
 # cases with modified header
 # mpi should abort if it detects that wildcards are/may needed after init (normal header: need to assume wildcard usage)
-# Idee: dlunload libldl load "eigene" lib mit dlopen wrapper (im zweifel jit compilen) und dann kann ich wieder die normale implementation laden
-# wird nihct funktionieren, dlclose darf die syms in address space lassen
 add_dynamic_wrapper_testcase_2(wrapper_test_17 example_app_4.c modified_mpi modified_mpi wrapper_normal_no "MPI Initialized with wildcards ENabled")
 add_dynamic_wrapper_testcase_2(wrapper_test_18 example_app_4.c modified_mpi modified_mpi wrapper_normal_with "MPI Initialized with wildcards ENabled")
 # analyze the dynamically loaded library and find that no wildcards are needed there as well
 
-#TODO optimally this would be possible by intercepting dlopen
-#add_dynamic_wrapper_testcase_2(wrapper_test_19 example_app_4.c modified_mpi modified_mpi wrapper_modified_no "MPI Initialized with wildcards DISabled")
-add_dynamic_wrapper_testcase_2(wrapper_test_19 example_app_4.c modified_mpi modified_mpi wrapper_modified_no "MPI Initialized with wildcards ENabled")
-
+# Intercepting dlopen to detect that library is valid
+add_dynamic_wrapper_testcase_2(wrapper_test_19 example_app_4.c modified_mpi modified_mpi wrapper_modified_no "MPI Initialized with wildcards DISabled")
+# TODO testcase will crash with an approptiate error description
 add_dynamic_wrapper_testcase_2(wrapper_test_20 example_app_4.c modified_mpi modified_mpi wrapper_modified_with "MPI Initialized with wildcards ENabled")
 
 # and cases compiled against modified header but executed with normal mpi library

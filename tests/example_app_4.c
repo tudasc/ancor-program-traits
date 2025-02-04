@@ -20,6 +20,7 @@ int main(int argc, char **argv) {
 
     sample_mpi_init(NULL,NULL);
 
+    printf("Use dlopen\n");
     printf("dlopen: %s\n",LIBRARY_TO_LOAD);
 
     // dynamically open the library

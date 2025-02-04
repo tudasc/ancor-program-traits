@@ -16,6 +16,8 @@
 
 #include <glib.h>
 
+#include "plthook.h"
+
 struct trait_results {
     struct trait_options options;
     char *marker_to_look_for;
@@ -78,6 +80,8 @@ static uint32_t GetNumberOfSymbolsFromGnuHash(const Elf64_Addr gnuHashAddress) {
 
     return lastSymbol;
 }
+
+int install_dlopen_plt_hook(void* library_addr);
 
 // from: https://stackoverflow.com/questions/4031672/without-access-to-argv0-how-do-i-get-the-program-name
 char *get_program_path() {
@@ -332,6 +336,8 @@ int trait_evaluation_callback(struct dl_phdr_info *info, size_t size, void *data
                         if (trait->options.check_for_dlopen && strcmp(sym_name, "dlopen") == 0 && !is_libdl(lib_name)) {
                             printf("Library %d: %s: Found dlopen\n", library_count, lib_name);
                             trait->is_true = FALSE;
+
+                            install_dlopen_plt_hook(info->dlpi_addr);
                             return 1; // abort
                         }
                         if (trait->options.check_for_mprotect && strcmp(sym_name, "mprotect") == 0 && !
@@ -383,6 +389,9 @@ int trait_evaluation_callback(struct dl_phdr_info *info, size_t size, void *data
     // nonzero ABORTs reading in the other libraries
 }
 
+
+
+
 void evaluate_trait(trait_handle_type trait) {
     assert(g_ptr_array_find(all_traits, trait, NULL));
     assert(!trait->is_evluated);
@@ -391,16 +400,17 @@ void evaluate_trait(trait_handle_type trait) {
     // check all libraries
     dl_iterate_phdr(&trait_evaluation_callback, trait);
 
+
     if (trait->options.check_for_dlopen && trait->found_dlopen) {
         printf("Found Use of dlopen, cannot analyze trait, must assume it does not hold anymore after dlopen usage\n");
         assert(trait->is_true == false);
-        if (trait->options.check_for_mprotect && trait->found_mprotect) {
-            printf(
-                "Found Use of mprotect , cannot analyze trait, must assume it does not hold anymore after mprotect  usage\n");
-            assert(trait->is_true == false);
-        }
-        trait->is_evluated = true;
     }
+    if (trait->options.check_for_mprotect && trait->found_mprotect) {
+        printf(
+            "Found Use of mprotect , cannot analyze trait, must assume it does not hold anymore after mprotect  usage\n");
+        assert(trait->is_true == false);
+    }
+    trait->is_evluated = true;
 }
 
 trait_handle_type register_trait(struct trait_options *options) {
@@ -516,3 +526,59 @@ void *dlopen(const char *filename, int flag) {
     return result_handle;
 }
  */
+
+__attribute((weak)) void *dlopen(const char *filename, int flag);
+typedef void *(*dlopen_fnptr_t)(const char *, int);
+
+dlopen_fnptr_t original_dlopen = NULL;
+
+// Our replacement dlopen
+static void *our_dlopen(const char *filename, int flags) {
+    printf("Intercept Loading library: %s\n", filename);
+
+    // Call original dlopen
+    assert(original_dlopen!=NULL);
+    void *handle = original_dlopen(filename, flags);
+
+    if (handle) {
+        // Load was successful, need to analyze if loaded library still satisfies all the traits
+
+        //TODO implement me
+        assert(false);
+
+
+    }
+
+    return handle;
+}
+
+__attribute((weak)) int main(int argc, char** argv);
+
+int install_dlopen_plt_hook(void* library_addr) {
+    assert (dlopen != NULL);
+        plthook_t *plthook;
+        printf("Installing plthook for dlopen\n");
+    if (original_dlopen==NULL) {
+        original_dlopen = dlopen;
+    }
+        if (plthook_open_by_address(&plthook, library_addr) != 0) {
+            printf("plthook_open error: %s\n", plthook_error());
+            return 1;
+        }
+/*
+        if (plthook_open_by_handle(&plthook, handle) != 0) {
+            printf("plthook_open error: %s\n", plthook_error());
+            return 1;
+        }
+        */
+        //plthook_open(&plthook, LIBDL_LOCATION);
+        if (plthook_replace(plthook, "dlopen", (void*)our_dlopen, NULL) != 0) {
+            printf("plthook_replace error: %s\n", plthook_error());
+            plthook_close(plthook);
+            return -1;
+        }
+        plthook_close(plthook);
+        return 0;// success
+
+
+}

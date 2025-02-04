@@ -6,7 +6,8 @@ set(CMAKE_C_STANDARD 11)
 include(CTest)
 enable_testing()
 
-set(CMAKE_C_FLAGS "-Wall -Wextra -Wno-unused-parameter")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Wno-unused-parameter")
+
 
 find_package(PkgConfig REQUIRED)
 pkg_search_module(GLIB REQUIRED glib-2.0)
@@ -33,10 +34,33 @@ find_library(LIBDL_LOCATION libdl.so)
 
 configure_file(program_traits.h.in program_traits.h @ONLY)
 
+include(ExternalProject)
+
+# remove quotation marks
+separate_arguments(C_FLAGS_EXPAND UNIX_COMMAND "${CMAKE_C_FLAGS}")
+ExternalProject_Add(
+        plthook
+        GIT_REPOSITORY https://github.com/kubo/plthook.git
+        GIT_TAG 2858946
+        CONFIGURE_COMMAND ""
+        BUILD_IN_SOURCE 1
+        BUILD_COMMAND ${CMAKE_C_COMPILER} ${C_FLAGS_EXPAND} -shared -fPIC -o libplthook.so plthook_elf.c -ldl
+        INSTALL_COMMAND ""
+        # need to declare the build byproducts for ninja
+        BUILD_BYPRODUCTS <SOURCE_DIR>/libplthook.so
+)
+ExternalProject_Get_Property(plthook SOURCE_DIR)
+set(PLTHOOK_DIR ${SOURCE_DIR})
+
+
+
 # the main target
 add_library(ancor_programm_traits SHARED program_traits.c program_traits.h)
 target_link_libraries(ancor_programm_traits ${GLIB_LDFLAGS})
 target_link_libraries(ancor_programm_traits dl)
+target_link_libraries(ancor_programm_traits ${PLTHOOK_DIR}/libplthook.so)
+target_include_directories(ancor_programm_traits PUBLIC ${PLTHOOK_DIR})
+add_dependencies(ancor_programm_traits plthook)
 
 # so that generated and non generated files can include each other in either way:
 target_include_directories(ancor_programm_traits PUBLIC "${CMAKE_CURRENT_BINARY_DIR}")
