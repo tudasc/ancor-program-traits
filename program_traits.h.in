@@ -36,5 +36,6 @@ void remove_trait(trait_handle_type trait);
 // this is set at configure time
 #cmakedefine LIBC_LOCATION "@LIBC_LOCATION@"
 #cmakedefine LIBDL_LOCATION "@LIBDL_LOCATION@"
+#cmakedefine HOOK_DLOPEN "@HOOK_DLOPEN@"
 
 #endif //ANCOR_PROGRAMM_TRAITS_PROGRAM_TRAITS_H

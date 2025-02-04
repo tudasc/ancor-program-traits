@@ -32,10 +32,28 @@ endif()
 
 find_library(LIBDL_LOCATION libdl.so)
 
+option(HOOK_DLOPEN "Enable to hook dlopen, Off aborts analysis on detection of dlopen" On)
+
 configure_file(program_traits.h.in program_traits.h @ONLY)
+
+# the main target
+add_library(ancor_programm_traits SHARED program_traits.c program_traits.h)
+target_link_libraries(ancor_programm_traits ${GLIB_LDFLAGS})
+target_link_libraries(ancor_programm_traits dl)
+
+
+# so that generated and non generated files can include each other in either way:
+target_include_directories(ancor_programm_traits PUBLIC "${CMAKE_CURRENT_BINARY_DIR}")
+target_include_directories(ancor_programm_traits PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
+
+# derived targets may want to include generated and non generated files:
+set(PROGRAM_TRAITS_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}:${CMAKE_CURRENT_SOURCE_DIR}")
+
+
 
 include(ExternalProject)
 
+if (HOOK_DLOPEN)
 # remove quotation marks
 separate_arguments(C_FLAGS_EXPAND UNIX_COMMAND "${CMAKE_C_FLAGS}")
 ExternalProject_Add(
@@ -53,21 +71,13 @@ ExternalProject_Get_Property(plthook SOURCE_DIR)
 set(PLTHOOK_DIR ${SOURCE_DIR})
 
 
-
-# the main target
-add_library(ancor_programm_traits SHARED program_traits.c program_traits.h)
-target_link_libraries(ancor_programm_traits ${GLIB_LDFLAGS})
-target_link_libraries(ancor_programm_traits dl)
 target_link_libraries(ancor_programm_traits ${PLTHOOK_DIR}/libplthook.so)
 target_include_directories(ancor_programm_traits PUBLIC ${PLTHOOK_DIR})
 add_dependencies(ancor_programm_traits plthook)
+endif ()
 
-# so that generated and non generated files can include each other in either way:
-target_include_directories(ancor_programm_traits PUBLIC "${CMAKE_CURRENT_BINARY_DIR}")
-target_include_directories(ancor_programm_traits PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 
-# derived targets may want to include generated and non generated files:
-set(PROGRAM_TRAITS_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}:${CMAKE_CURRENT_SOURCE_DIR}")
+
 
 
 add_subdirectory(tests)
