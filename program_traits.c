@@ -231,6 +231,16 @@ bool check_skip_library(struct dl_phdr_info *info, struct trait_results *trait) 
         return true;
     }
 
+    //TODO make this an option
+    // skip self
+    if (is_same_lib(lib_name, LIB_PROGRAM_TRAITS_LOCATION)) {
+        return true;
+    }
+    // skip libplthook (as it is part of self)
+    if (is_same_lib(lib_name, LIB_PLTHOOK_LOCATION)) {
+        return true;
+    }
+
     // skip main binary if indicated
     if (strlen(info->dlpi_name) == 0) {
         if (trait->options.skip_main_binary) {
@@ -511,6 +521,23 @@ void remove_trait(trait_handle_type trait) {
     }
 }
 
+void evaluate_trait_on_dlopen(void* trait_data, void* filename) {
+    trait_handle_type trait = (trait_handle_type) trait_data;
+    if (check_trait(trait)) {
+        // if it was false from the beginning: nothing to do
+        if (trait->options.check_for_dlopen) {
+            trait->is_evluated=false;
+            trait->is_true=false;
+            // re-evaluate if still holds with added library
+            evaluate_trait(trait);
+        }
+        if (!trait->is_true) {
+            printf("Trait violation found after dlopen (%s not satisfied anymore after loading %s)\n",trait->options.name,filename);
+            printf("Aborting...\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+}
 
 #ifdef HOOK_DLOPEN
 __attribute((weak)) void *dlopen(const char *filename, int flag);
@@ -528,10 +555,8 @@ static void *our_dlopen(const char *filename, int flags) {
     void *handle = original_dlopen(filename, flags);
 
     if (handle) {
-        // Load was successful, need to analyze if loaded library still satisfies all the traits
-
-        //TODO implement me
-        assert(false);
+        // Load was successful, need to analyze if program with additional loaded library still satisfies all the traits
+        g_ptr_array_foreach(all_traits,evaluate_trait_on_dlopen, filename);
     }
 
     return handle;
