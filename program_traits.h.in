@@ -40,7 +40,7 @@ void remove_trait(trait_handle_type trait);
 #cmakedefine LIB_PLTHOOK_LOCATION "@LIB_PLTHOOK_LOCATION@"
 
 #cmakedefine HOOK_DLOPEN "@HOOK_DLOPEN@"
-#cmakedefine HOOK_MPROTECT"@HOOK_MPROTECT@"
+#cmakedefine HOOK_MPROTECT "@HOOK_MPROTECT@"
 
 
 #endif //ANCOR_PROGRAMM_TRAITS_PROGRAM_TRAITS_H
