@@ -52,6 +52,7 @@ set(PROGRAM_TRAITS_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}:${CMAKE_CURRENT_SOUR
 set(LIB_PROGRAM_TRAITS_LOCATION ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}ancor_programm_traits${CMAKE_SHARED_LIBRARY_SUFFIX})
 
 option(HOOK_DLOPEN "Enable to hook dlopen, Off aborts analysis on detection of dlopen" On)
+option(HOOK_MPROTECT "Enable to hook mprotect, Off aborts analysis on detection of mprotect" On)
 if (HOOK_DLOPEN)
     include(ExternalProject)
     # remove quotation marks

@@ -16,6 +16,8 @@
 
 #include <glib.h>
 
+#include <sys/mman.h>
+
 #include "plthook.h"
 
 struct trait_results {
@@ -82,6 +84,9 @@ static uint32_t GetNumberOfSymbolsFromGnuHash(const Elf64_Addr gnuHashAddress) {
 }
 #ifdef HOOK_DLOPEN
 int install_dlopen_plt_hook(void *library_addr);
+#endif
+#ifdef HOOK_MPROTECT
+int install_mprotect_plt_hook(void *library_addr);
 #endif
 
 // from: https://stackoverflow.com/questions/4031672/without-access-to-argv0-how-do-i-get-the-program-name
@@ -344,9 +349,10 @@ int trait_evaluation_callback(struct dl_phdr_info *info, size_t size, void *data
                         }
                         if (trait->options.check_for_dlopen && strcmp(sym_name, "dlopen") == 0 && !is_libdl(lib_name)) {
 #ifdef HOOK_DLOPEN
-                            int status = install_dlopen_plt_hook((void*)info->dlpi_addr);
-                            if (status!=0) {
-                                printf("Library %d: %s: Found dlopen, Failed to install plthook\n", library_count, lib_name);
+                            int status = install_dlopen_plt_hook((void *) info->dlpi_addr);
+                            if (status != 0) {
+                                printf("Library %d: %s: Found dlopen, Failed to install plthook\n", library_count,
+                                       lib_name);
                                 trait->is_true = FALSE;
                                 return 1; // abort
                             }
@@ -358,9 +364,20 @@ int trait_evaluation_callback(struct dl_phdr_info *info, size_t size, void *data
                         }
                         if (trait->options.check_for_mprotect && strcmp(sym_name, "mprotect") == 0 && !
                             is_libc(lib_name)) {
+#ifdef HOOK_MPROTECT
+                            int status = install_mprotect_plt_hook((void *) info->dlpi_addr);
+                            if (status != 0) {
+                                printf("Library %d: %s: Found mprotect, Failed to install plthook\n", library_count,
+                                       lib_name);
+                                trait->is_true = FALSE;
+                                return 1; // abort
+                            }
+#else
+
                             printf("Library %d: %s: Found mprotect\n", library_count, lib_name);
                             trait->is_true = FALSE;
                             return 1; // abort
+#endif
                         }
 
                         if (!has_required_symbol) {
@@ -412,11 +429,9 @@ void evaluate_trait(trait_handle_type trait) {
     printf("evaluate trait: %s\n", trait->options.name);
 
     // reset library_count
-    library_count=0;
+    library_count = 0;
     // check all libraries
     dl_iterate_phdr(&trait_evaluation_callback, trait);
-
-
 
 
 #ifndef HOOK_DLOPEN
@@ -426,12 +441,14 @@ void evaluate_trait(trait_handle_type trait) {
     }
     // #ifdef HOOK_DLOPEN : the hook will be installed while iterating over all libraries
 #endif
-
+#ifndef HOOK_MPROTECT
     if (trait->options.check_for_mprotect && trait->found_mprotect) {
         printf(
-            "Found Use of mprotect , cannot analyze trait, must assume it does not hold anymore after mprotect  usage\n");
+            "Found Use of mprotect , cannot analyze trait, must assume it does not hold anymore after mprotect usage\n");
         assert(trait->is_true == false);
     }
+    // #ifdef HOOK_MPROTECT : the hook will be installed when iterating over all libraries
+#endif
     trait->is_evluated = true;
 }
 
@@ -528,18 +545,19 @@ void remove_trait(trait_handle_type trait) {
     }
 }
 
-void evaluate_trait_on_dlopen(void* trait_data, void* filename) {
+void evaluate_trait_on_dlopen(void *trait_data, void *filename) {
     trait_handle_type trait = (trait_handle_type) trait_data;
     if (check_trait(trait)) {
         // if it was false from the beginning: nothing to do
         if (trait->options.check_for_dlopen) {
-            trait->is_evluated=false;
-            trait->is_true=false;
+            trait->is_evluated = false;
+            trait->is_true = false;
             // re-evaluate if still holds with added library
             evaluate_trait(trait);
         }
         if (!trait->is_true) {
-            printf("Trait violation found after dlopen (%s not satisfied anymore after loading %s)\n",trait->options.name,(char*)filename);
+            printf("Trait violation found after dlopen (%s not satisfied anymore after loading %s)\n",
+                   trait->options.name, (char *) filename);
             printf("Aborting...\n");
             exit(EXIT_FAILURE);
         }
@@ -563,7 +581,7 @@ static void *our_dlopen(const char *filename, int flags) {
 
     if (handle) {
         // Load was successful, need to analyze if program with additional loaded library still satisfies all the traits
-        g_ptr_array_foreach(all_traits,evaluate_trait_on_dlopen, filename);
+        g_ptr_array_foreach(all_traits, evaluate_trait_on_dlopen, filename);
     }
 
     return handle;
@@ -589,4 +607,46 @@ int install_dlopen_plt_hook(void *library_addr) {
     plthook_close(plthook);
     return 0; // success
 }
+#endif
+
+
+#ifdef HOOK_MPROTECT
+
+__attribute((weak)) int mprotect(void *addr, size_t size, int prot);
+
+typedef int (*mprotect_fnptr_t)(void *, size_t, int);
+
+mprotect_fnptr_t original_mprotect = NULL;
+
+int our_mprotect(void *addr, size_t size, int prot) {
+    if (prot & PROT_EXEC) {
+        printf("Making Memory Executable could cause a Trait violation\n");
+        printf("Aborting...\n");
+        exit(EXIT_FAILURE);
+    }
+
+    return original_mprotect(addr, size, prot);
+}
+
+int install_mprotect_plt_hook(void *library_addr) {
+    assert(mprotect != NULL);
+    plthook_t *plthook;
+    printf("Installing plthook for dlopen\n");
+    if (original_mprotect == NULL) {
+        original_mprotect = mprotect;
+    }
+    if (plthook_open_by_address(&plthook, library_addr) != 0) {
+        printf("plthook_open error: %s\n", plthook_error());
+        return 1;
+    }
+    if (plthook_replace(plthook, "mprotect", (void *) our_dlopen, NULL) != 0) {
+        printf("plthook_replace error: %s\n", plthook_error());
+        plthook_close(plthook);
+        return -1;
+    }
+    plthook_close(plthook);
+    return 0; // success
+}
+
+
 #endif
