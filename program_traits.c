@@ -406,8 +406,12 @@ void evaluate_trait(trait_handle_type trait) {
     assert(!trait->is_evluated);
     printf("evaluate trait: %s\n", trait->options.name);
 
+    // reset library_count
+    library_count=0;
     // check all libraries
     dl_iterate_phdr(&trait_evaluation_callback, trait);
+
+
 
 
 #ifndef HOOK_DLOPEN
