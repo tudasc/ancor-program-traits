@@ -196,17 +196,17 @@ add_dynamic_wrapper_testcase_2(wrapper_test_16 example_app_4.c normal_mpi modifi
 # dlopen is implemented in /lib/x86_64-linux-gnu/libdl.so.2
 
 # cases with modified header
-# mpi should abort if it detects that wildcards are/may needed after init (normal header: need to assume wildcard usage)
-add_dynamic_wrapper_testcase_2(wrapper_test_17 example_app_4.c modified_mpi modified_mpi wrapper_normal_no "MPI Initialized with wildcards ENabled")
-add_dynamic_wrapper_testcase_2(wrapper_test_18 example_app_4.c modified_mpi modified_mpi wrapper_normal_with "MPI Initialized with wildcards ENabled")
-# analyze the dynamically loaded library and find that no wildcards are needed there as well
+# mpi should abort if it detects that wildcards are/may needed after init
+# these cases use wrapper library with normal header: thus need to assume wildcard usage and abort on detection of this
+add_dynamic_wrapper_testcase_2(wrapper_test_17 example_app_4.c modified_mpi modified_mpi wrapper_normal_no "Trait violation found after dlopen")
+add_dynamic_wrapper_testcase_2(wrapper_test_18 example_app_4.c modified_mpi modified_mpi wrapper_normal_with "Trait violation found after dlopen")
 
-# Intercepting dlopen to detect that library is valid
+# in this case the wrapper does not have wildcards, so this configuration is valid
 add_dynamic_wrapper_testcase_2(wrapper_test_19 example_app_4.c modified_mpi modified_mpi wrapper_modified_no "MPI Initialized with wildcards DISabled")
 
-# testcase will abort with an approptiate error description
+# wildcards are needed, but this is only visible after MPI init. Abort
 add_dynamic_wrapper_testcase_2(wrapper_test_20 example_app_4.c modified_mpi modified_mpi wrapper_modified_with "Trait violation found after dlopen")
-set_tests_properties(wrapper_test_20 PROPERTIES WILL_FAIL TRUE)
+
 
 # and cases compiled against modified header but executed with normal mpi library
 add_dynamic_wrapper_testcase_2(wrapper_test_21 example_app_4.c modified_mpi normal_mpi wrapper_normal_no "Normal MPI always is using wildcards")
