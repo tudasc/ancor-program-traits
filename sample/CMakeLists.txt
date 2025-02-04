@@ -30,6 +30,7 @@ set(MPICH_INSTALL_DIR ${INSTALL_DIR})
 #add_library(MPICH_LIBRARY SHARED IMPORTED GLOBAL)
 #set_property(TARGET MPICH_LIBRARY PROPERTY IMPORTED_LOCATION ${MPICH_INSTALL_DIR}/lib/libmpi.so)
 set(MPICH_LIBRARY ${MPICH_INSTALL_DIR}/lib/libmpi.so)
+set(MPICH_LIBRARY_CXX ${MPICH_INSTALL_DIR}/lib/libmpicxx.so)
 
 #add_executable(MPICC_TARGET IMPORTED GLOBAL)
 #set_property(TARGET MPICC_TARGET PROPERTY IMPORTED_LOCATION ${MPICH_INSTALL_DIR}/bin/mpicc)
@@ -46,9 +47,10 @@ set(MPIRUN ${MPICH_INSTALL_DIR}/bin/mpirun)
 
 add_library(mpi_wrapper_lib SHARED mpi_wrapper.c mpi_wrapper.h)
 # configure the libraries ignored in wrapper lib
-find_library(LIBVERBS_LOCATION libibverbs.so)
-find_library(LIBTLDL_LOCATION libltdl.so)
+#find_library(LIBVERBS_LOCATION libibverbs.so)
+#find_library(LIBTLDL_LOCATION libltdl.so)
 set(LIBMPI_LOCATION ${MPICH_LIBRARY})
+set(LIBMPI_LOCATION_CXX ${MPICH_LIBRARY_CXX})
 configure_file(mpi_wrapper.h.in mpi_wrapper.h @ONLY)
 
 target_include_directories(mpi_wrapper_lib PUBLIC ${CMAKE_CURRENT_BINARY_DIR})

@@ -63,24 +63,17 @@ void check_wildcard_usage_information() {
         options.check_for_dlopen = true;
         options.check_for_mprotect = true;
         options.num_libraies_to_skip = 1;
-#ifdef LIBVERBS_LOCATION
-        ++options.num_libraies_to_skip;
-#endif
-#ifdef LIBTLDL_LOCATION
-        ++options.num_libraies_to_skip;
+#ifdef LIBMPI_LOCATION_CXX
+        // if compiled with cxx support
+        options.num_libraies_to_skip++;
 #endif
         options.libraies_to_skip = malloc(options.num_libraies_to_skip * sizeof(char *));
         // these libraries internal to MPICH use dlopen (we know that they do not dynamically load something that will interfere with wildcard matching)
         int i = 0;
         options.libraies_to_skip[i] = LIBMPI_LOCATION;
-#ifdef LIBVERBS_LOCATION
+#ifdef LIBMPI_LOCATION_CXX
         ++i;
-        options.libraies_to_skip[i] = LIBVERBS_LOCATION;
-#endif
-        // TODO problem if the user uses libltdl to dlopen something (lt_dlopen), we would not catch it anymore
-#ifdef LIBTLDL_LOCATION
-        ++i;
-        options.libraies_to_skip[i] = LIBTLDL_LOCATION;
+        options.libraies_to_skip[i] = LIBMPI_LOCATION_CXX;
 #endif
 
         no_wildcard_trait_handle = register_trait(&options);
