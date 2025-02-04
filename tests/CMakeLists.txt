@@ -144,6 +144,8 @@ function(add_dynamic_wrapper_testcase TEST_NAME SRC_CODE WRAPPER_LIB EXPECTED_TE
     # the lib that contains dlopen
     target_link_libraries(${TEST_NAME} dl)
     target_compile_definitions(${TEST_NAME} PUBLIC LIBRARY_TO_LOAD="$<TARGET_FILE:${WRAPPER_LIB}>")
+    # add dependency on the library, as it loaded dynamically
+    add_dependencies(${TEST_NAME} ${WRAPPER_LIB})
     add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
     set_tests_properties(${TEST_NAME} PROPERTIES
             PASS_REGULAR_EXPRESSION ${EXPECTED_TEST_RESULT}
@@ -170,6 +172,7 @@ function(add_dynamic_wrapper_testcase_2 TEST_NAME SRC_CODE MPI_HEADER MPI_LIB WR
     target_link_libraries(${TEST_NAME} dl)
     target_link_libraries(${TEST_NAME} ${MPI_LIB})
     target_compile_definitions(${TEST_NAME} PUBLIC LIBRARY_TO_LOAD="$<TARGET_FILE:${WRAPPER_LIB}>")
+    add_dependencies(${TEST_NAME} ${WRAPPER_LIB})
     add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
     set_tests_properties(${TEST_NAME} PROPERTIES
             PASS_REGULAR_EXPRESSION ${EXPECTED_TEST_RESULT}
