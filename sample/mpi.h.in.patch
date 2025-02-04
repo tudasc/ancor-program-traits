@@ -1,13 +1,13 @@
---- mpi.h.in.orig	2025-01-29 16:20:45.588477339 +0100
-+++ mpi.h.in	2025-01-29 16:29:27.601584461 +0100
+--- mpi.h.in.orig	2025-02-04 12:59:53.935414664 +0100
++++ mpi.h.in	2025-02-04 13:01:06.383263825 +0100
 @@ -1,3 +1,4 @@
 +// patched to include the marker integer for the absence of wildcards
  /*
   * Copyright (C) by Argonne National Laboratory
   *     See COPYRIGHT in top-level directory
-@@ -500,9 +501,28 @@
+@@ -500,9 +501,34 @@
  extern int * const MPI_WEIGHTS_EMPTY MPICH_API_PUBLIC;
-
+ 
  #define MPI_PROC_NULL   (-1)
 -#define MPI_ANY_SOURCE 	(-2)
  #define MPI_ROOT        (-3)
