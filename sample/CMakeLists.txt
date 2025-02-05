@@ -47,8 +47,13 @@ set(MPIRUN ${MPICH_INSTALL_DIR}/bin/mpirun)
 
 add_library(mpi_wrapper_lib SHARED mpi_wrapper.c mpi_wrapper.h)
 # configure the libraries ignored in wrapper lib
-#find_library(LIBVERBS_LOCATION libibverbs.so)
-#find_library(LIBTLDL_LOCATION libltdl.so)
+
+# part of UCX
+find_library(LIBUCP_LOCATION libucp.so)
+find_library(LIBUCS_LOCATION libucs.so)
+find_library(LIBUCT_LOCATION libuct.so)
+find_library(LIBUCM_LOCATION libucm.so)
+
 set(LIBMPI_LOCATION ${MPICH_LIBRARY})
 set(LIBMPI_LOCATION_CXX ${MPICH_LIBRARY_CXX})
 configure_file(mpi_wrapper.h.in mpi_wrapper.h @ONLY)

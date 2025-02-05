@@ -67,6 +67,19 @@ void check_wildcard_usage_information() {
         // if compiled with cxx support
         options.num_libraies_to_skip++;
 #endif
+        // from UCX
+#ifdef LIBUCP_LOCATION
+        options.num_libraies_to_skip++;
+#endif
+#ifdef LIBUCS_LOCATION
+        options.num_libraies_to_skip++;
+#endif
+#ifdef LIBUCT_LOCATION
+        options.num_libraies_to_skip++;
+#endif
+#ifdef LIBUCM_LOCATION
+        options.num_libraies_to_skip++;
+#endif
         options.libraies_to_skip = malloc(options.num_libraies_to_skip * sizeof(char *));
         // these libraries internal to MPICH use dlopen (we know that they do not dynamically load something that will interfere with wildcard matching)
         int i = 0;
@@ -74,6 +87,26 @@ void check_wildcard_usage_information() {
 #ifdef LIBMPI_LOCATION_CXX
         ++i;
         options.libraies_to_skip[i] = LIBMPI_LOCATION_CXX;
+#endif
+
+#ifdef LIBUCP_LOCATION
+        ++i;
+        options.libraies_to_skip[i] = LIBUCP_LOCATION;
+#endif
+
+#ifdef LIBUCS_LOCATION
+        ++i;
+        options.libraies_to_skip[i] = LIBUCS_LOCATION;
+#endif
+
+#ifdef LIBUCT_LOCATION
+        ++i;
+        options.libraies_to_skip[i] = LIBUCT_LOCATION;
+#endif
+
+#ifdef LIBUCM_LOCATION
+            ++i;
+            options.libraies_to_skip[i] = LIBUCM_LOCATION;
 #endif
 
         no_wildcard_trait_handle = register_trait(&options);
