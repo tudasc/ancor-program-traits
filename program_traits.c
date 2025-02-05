@@ -83,10 +83,10 @@ static uint32_t GetNumberOfSymbolsFromGnuHash(const Elf64_Addr gnuHashAddress) {
     return lastSymbol;
 }
 #ifdef HOOK_DLOPEN
-int install_dlopen_plt_hook(void *library_addr);
+int install_dlopen_plt_hook(struct dl_phdr_info *info);
 #endif
 #ifdef HOOK_MPROTECT
-int install_mprotect_plt_hook(void *library_addr);
+int install_mprotect_plt_hook(struct dl_phdr_info *info);
 #endif
 
 // from: https://stackoverflow.com/questions/4031672/without-access-to-argv0-how-do-i-get-the-program-name
@@ -349,7 +349,8 @@ int trait_evaluation_callback(struct dl_phdr_info *info, size_t size, void *data
                         }
                         if (trait->options.check_for_dlopen && strcmp(sym_name, "dlopen") == 0 && !is_libdl(lib_name)) {
 #ifdef HOOK_DLOPEN
-                            int status = install_dlopen_plt_hook((void *) info->dlpi_addr);
+
+                            int status = install_dlopen_plt_hook(info);
                             if (status != 0) {
                                 printf("Library %d: %s: Found dlopen, Failed to install plthook\n", library_count,
                                        lib_name);
@@ -365,7 +366,7 @@ int trait_evaluation_callback(struct dl_phdr_info *info, size_t size, void *data
                         if (trait->options.check_for_mprotect && strcmp(sym_name, "mprotect") == 0 && !
                             is_libc(lib_name)) {
 #ifdef HOOK_MPROTECT
-                            int status = install_mprotect_plt_hook((void *) info->dlpi_addr);
+                            int status = install_mprotect_plt_hook(info);
                             if (status != 0) {
                                 printf("Library %d: %s: Found mprotect, Failed to install plthook\n", library_count,
                                        lib_name);
@@ -588,16 +589,28 @@ static void *our_dlopen(const char *filename, int flags) {
 }
 
 
-int install_dlopen_plt_hook(void *library_addr) {
+int install_dlopen_plt_hook(struct dl_phdr_info *info) {
     assert(dlopen != NULL);
     plthook_t *plthook;
     printf("Installing plthook for dlopen\n");
     if (original_dlopen == NULL) {
         original_dlopen = dlopen;
     }
-    if (plthook_open_by_address(&plthook, library_addr) != 0) {
-        printf("plthook_open error: %s\n", plthook_error());
-        return 1;
+    if (strlen(info->dlpi_name) ==0){
+        // main binary
+        //info->dlpi_addr may point to NULL but relocation may be done,
+        // need default plthook_open to open main binary
+        if (plthook_open(&plthook, NULL) != 0) {
+            printf("plthook_open error: %s\n", plthook_error());
+            return 1;
+        }
+
+    }
+    else {
+        if (plthook_open_by_address(&plthook, info->dlpi_addr) != 0) {
+            printf("plthook_open error: %s\n", plthook_error());
+            return 1;
+        }
     }
     if (plthook_replace(plthook, "dlopen", (void *) our_dlopen, NULL) != 0) {
         printf("plthook_replace error: %s\n", plthook_error());
@@ -640,14 +653,14 @@ int our_mprotect(void *addr, size_t size, int prot) {
     return original_mprotect(addr, size, prot);
 }
 
-int install_mprotect_plt_hook(void *library_addr) {
+int install_mprotect_plt_hook(struct dl_phdr_info *info) {
     assert(mprotect != NULL);
     plthook_t *plthook;
     printf("Installing plthook for mprotect\n");
     if (original_mprotect == NULL) {
         original_mprotect = mprotect;
     }
-    if (plthook_open_by_address(&plthook, library_addr) != 0) {
+    if (plthook_open_by_address(&plthook, info->dlpi_addr) != 0) {
         printf("plthook_open error: %s\n", plthook_error());
         return 1;
     }
