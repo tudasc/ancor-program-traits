@@ -546,6 +546,7 @@ void remove_trait(trait_handle_type trait) {
     }
 }
 
+#ifdef HOOK_DLOPEN
 void evaluate_trait_on_dlopen(void *trait_data, void *filename) {
     trait_handle_type trait = (trait_handle_type) trait_data;
     if (check_trait(trait)) {
@@ -565,7 +566,7 @@ void evaluate_trait_on_dlopen(void *trait_data, void *filename) {
     }
 }
 
-#ifdef HOOK_DLOPEN
+
 __attribute((weak)) void *dlopen(const char *filename, int flag);
 
 typedef void *(*dlopen_fnptr_t)(const char *, int);
