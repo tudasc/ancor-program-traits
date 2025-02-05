@@ -620,18 +620,30 @@ mprotect_fnptr_t original_mprotect = NULL;
 
 int our_mprotect(void *addr, size_t size, int prot) {
     if (prot & PROT_EXEC) {
-        printf("Making Memory Executable could cause a Trait violation\n");
-        printf("Aborting...\n");
-        exit(EXIT_FAILURE);
+        //check if there is still a trait around that requires protection from mprotect
+        bool need_to_check_mprotect = false;
+        for (unsigned int i = 0; i < all_traits->len; ++i) {
+            trait_handle_type trait = all_traits->pdata[i];
+            if (trait->options.check_for_mprotect) {
+                need_to_check_mprotect = true;
+                break;
+            }
+        }
+        if (need_to_check_mprotect) {
+            printf("Making Memory Executable could cause a Trait violation\n");
+            printf("Aborting...\n");
+            exit(EXIT_FAILURE);
+        }
     }
 
+    assert(original_mprotect != NULL);
     return original_mprotect(addr, size, prot);
 }
 
 int install_mprotect_plt_hook(void *library_addr) {
     assert(mprotect != NULL);
     plthook_t *plthook;
-    printf("Installing plthook for dlopen\n");
+    printf("Installing plthook for mprotect\n");
     if (original_mprotect == NULL) {
         original_mprotect = mprotect;
     }
