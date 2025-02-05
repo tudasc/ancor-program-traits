@@ -37,7 +37,7 @@ GPtrArray *all_traits;
 // from:
 // https://stackoverflow.com/questions/15779185/how-to-list-on-the-fly-all-the-functions-symbols-available-in-c-code-on-a-linux
 // only works for 64 bit
-static_assert(sizeof(ElfW(Addr)) == sizeof(Elf64_Addr));
+static_assert(sizeof(ElfW(Addr)) == sizeof(Elf64_Addr),"Currently Only Supports 64 bit");
 
 static uint32_t GetNumberOfSymbolsFromGnuHash(const Elf64_Addr gnuHashAddress) {
     // See https://flapenguin.me/2017/05/10/elf-lookup-dt-gnu-hash/ and
