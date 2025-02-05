@@ -546,6 +546,29 @@ void remove_trait(trait_handle_type trait) {
     }
 }
 
+#if defined(HOOK_DLOPEN) || defined(HOOK_MPROTECT)
+
+plthook_t *get_open_plthook(const struct dl_phdr_info *info) {
+    plthook_t *plthook;
+    if (strlen(info->dlpi_name) == 0) {
+        // main binary
+        //info->dlpi_addr may point to NULL but relocation may be done,
+        // need default plthook_open to open main binary
+        if (plthook_open(&plthook, NULL) != 0) {
+            printf("plthook_open error: %s\n", plthook_error());
+            return NULL;
+        }
+    } else {
+        if (plthook_open_by_address(&plthook, (void *) info->dlpi_addr) != 0) {
+            printf("plthook_open error: %s\n", plthook_error());
+            return NULL;
+        }
+    }
+    return plthook;
+}
+
+#endif
+
 #ifdef HOOK_DLOPEN
 void evaluate_trait_on_dlopen(void *trait_data, void *filename) {
     trait_handle_type trait = (trait_handle_type) trait_data;
@@ -592,27 +615,14 @@ static void *our_dlopen(const char *filename, int flags) {
 
 int install_dlopen_plt_hook(struct dl_phdr_info *info) {
     assert(dlopen != NULL);
-    plthook_t *plthook;
+    plthook_t *plthook = get_open_plthook(info);
+    if (plthook == NULL) { return -1; }
+
     printf("Installing plthook for dlopen\n");
     if (original_dlopen == NULL) {
         original_dlopen = dlopen;
     }
-    if (strlen(info->dlpi_name) ==0){
-        // main binary
-        //info->dlpi_addr may point to NULL but relocation may be done,
-        // need default plthook_open to open main binary
-        if (plthook_open(&plthook, NULL) != 0) {
-            printf("plthook_open error: %s\n", plthook_error());
-            return 1;
-        }
 
-    }
-    else {
-        if (plthook_open_by_address(&plthook, info->dlpi_addr) != 0) {
-            printf("plthook_open error: %s\n", plthook_error());
-            return 1;
-        }
-    }
     if (plthook_replace(plthook, "dlopen", (void *) our_dlopen, NULL) != 0) {
         printf("plthook_replace error: %s\n", plthook_error());
         plthook_close(plthook);
@@ -656,14 +666,11 @@ int our_mprotect(void *addr, size_t size, int prot) {
 
 int install_mprotect_plt_hook(struct dl_phdr_info *info) {
     assert(mprotect != NULL);
-    plthook_t *plthook;
+    plthook_t *plthook = get_open_plthook(info);
+    if (plthook == NULL) { return -1; }
     printf("Installing plthook for mprotect\n");
     if (original_mprotect == NULL) {
         original_mprotect = mprotect;
-    }
-    if (plthook_open_by_address(&plthook, info->dlpi_addr) != 0) {
-        printf("plthook_open error: %s\n", plthook_error());
-        return 1;
     }
     if (plthook_replace(plthook, "mprotect", (void *) our_dlopen, NULL) != 0) {
         printf("plthook_replace error: %s\n", plthook_error());
