@@ -430,7 +430,8 @@ int trait_evaluation_callback_for_dlopen(struct dl_phdr_info *info, size_t size,
 
     // find the library just opened, ignore others as they are already analyzed
     if (strcmp(info->dlpi_name, callback_data->target_name) == 0) {
-        return evaluate_trait_on_library(info, lib_name, trait);
+        evaluate_trait_on_library(info, lib_name, trait);
+        return 1;// found correct library:stop
     } else {
         return 0; // next library
     }
@@ -622,7 +623,8 @@ void evaluate_trait_on_dlopen(void *trait_data, void *cb_data) {
 
             // re-evaluate if still holds with added library
             callback_data->trait = trait;
-            dl_iterate_phdr(&trait_evaluation_callback_for_dlopen, callback_data);
+            int found_correct_lib = dl_iterate_phdr(&trait_evaluation_callback_for_dlopen, callback_data);
+            assert(found_correct_lib!=0);
         }
         if (!trait->is_true) {
             printf("Trait violation found after dlopen (%s not satisfied anymore after loading %s)\n",
