@@ -126,5 +126,43 @@ if (BUILD_MINI_APPS)
             PROCESSORS 8
             PASS_REGULAR_EXPRESSION "MPI Initialized with wildcards DISabled")
 
+
+    ExternalProject_Add(
+            hpcg
+            GIT_REPOSITORY https://github.com/hpcg-benchmark/hpcg.git
+            GIT_TAG 114602d
+            CMAKE_ARGS
+            -DHPCG_ENABLE_MPI=On
+            -DHPCG_ENABLE_OPENMP=On
+            -DCMAKE_C_COMPILER=${MPICC}
+            -DCMAKE_CXX_COMPILER=${MPICXX}
+            -DMPI_ROOT=${MPICH_INSTALL_DIR}
+            DEPENDS mpich
+            INSTALL_COMMAND ""
+    )
+    ExternalProject_Get_Property(hpcg BINARY_DIR)
+    set(HPCG_EXE ${BINARY_DIR}/xhpcg)
+
+    #without LD_PRELOAD
+    add_test(NAME hpcg
+            COMMAND bash -c "${MPIRUN} -n 2 ${HPCG_EXE}"
+
+    )
+    set_tests_properties(hpcg PROPERTIES
+            ENVIRONMENT "OMP_NUM_THREADS=1"
+            PROCESSORS 2)
+
+    # no PASS_REGULAR_EXPRESSION as hppcg will store its output in a logfile instead of stdout
+
+    #with out wrapper
+    add_test(NAME hpcg_with_wrapper
+            # run with our wrapper loaded as a normal pmpi tool
+            COMMAND bash -c "LD_PRELOAD=$<TARGET_FILE:mpi_wrapper_lib> ${MPIRUN} -n 2 ${HPCG_EXE}"
+
+    )
+    set_tests_properties(hpcg_with_wrapper PROPERTIES
+            ENVIRONMENT "OMP_NUM_THREADS=1"
+            PROCESSORS 2
+            PASS_REGULAR_EXPRESSION "MPI Initialized with wildcards DISabled")
 endif ()
 
