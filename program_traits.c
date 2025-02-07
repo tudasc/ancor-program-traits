@@ -18,6 +18,16 @@
 
 #include <sys/mman.h>
 
+#include <time.h>
+// no get tf.nsec in seconds
+int64_t difftimespec_ns(const struct timespec after, const struct timespec before)
+{
+    return ((int64_t)after.tv_sec - (int64_t)before.tv_sec) * (int64_t)1000000000
+         + ((int64_t)after.tv_nsec - (int64_t)before.tv_nsec);
+}
+
+double total_time_spent = 0;
+
 #include "plthook.h"
 
 struct trait_results {
@@ -425,6 +435,10 @@ int trait_evaluation_callback(struct dl_phdr_info *info, size_t size, void *data
 
 
 void evaluate_trait(trait_handle_type trait) {
+
+    struct timespec start, end;
+
+    clock_gettime(CLOCK_REALTIME, &start);
     assert(g_ptr_array_find(all_traits, trait, NULL));
     assert(!trait->is_evluated);
     printf("evaluate trait: %s\n", trait->options.name);
@@ -451,6 +465,13 @@ void evaluate_trait(trait_handle_type trait) {
     // #ifdef HOOK_MPROTECT : the hook will be installed when iterating over all libraries
 #endif
     trait->is_evluated = true;
+    clock_gettime(CLOCK_REALTIME, &end);
+
+    int64_t time_spent = difftimespec_ns(end,start);
+    total_time_spent += time_spent/1000000000.0;
+    printf("evaluated Trait %s in %fs\n",trait->options.name,time_spent/1000000000.0);
+    printf("Total Time used for all trait evaluations: %fs\n",total_time_spent);
+
 }
 
 trait_handle_type register_trait(struct trait_options *options) {
