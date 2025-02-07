@@ -21,7 +21,7 @@ function(add_testcase_configuration TEST_NAME SRC_CODE HEADER_TO_INCLUDE LIB_TO_
     target_compile_definitions(${TEST_NAME} PUBLIC TAG_TO_USE=${TAG_TO_USE})
     add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
     set_tests_properties(${TEST_NAME} PROPERTIES
-            PASS_REGULAR_EXPRESSION ${EXPECTED_TEST_RESULT}
+            REQUIRED_PASS_REGULAR_EXPRESSION ${EXPECTED_TEST_RESULT}
     )
 endfunction()
 
@@ -124,7 +124,7 @@ function(add_simple_wrapper_testcase TEST_NAME SRC_CODE WRAPPER_LIB EXPECTED_TES
     target_link_libraries(${TEST_NAME} PRIVATE ${WRAPPER_LIB})
     add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
     set_tests_properties(${TEST_NAME} PROPERTIES
-            PASS_REGULAR_EXPRESSION ${EXPECTED_TEST_RESULT}
+            REQUIRED_PASS_REGULAR_EXPRESSION ${EXPECTED_TEST_RESULT}
     )
 endfunction()
 
@@ -148,7 +148,7 @@ function(add_dynamic_wrapper_testcase TEST_NAME SRC_CODE WRAPPER_LIB EXPECTED_TE
     add_dependencies(${TEST_NAME} ${WRAPPER_LIB})
     add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
     set_tests_properties(${TEST_NAME} PROPERTIES
-            PASS_REGULAR_EXPRESSION ${EXPECTED_TEST_RESULT}
+            REQUIRED_PASS_REGULAR_EXPRESSION ${EXPECTED_TEST_RESULT}
     )
 endfunction()
 
@@ -175,7 +175,7 @@ function(add_dynamic_wrapper_testcase_2 TEST_NAME SRC_CODE MPI_HEADER MPI_LIB WR
     add_dependencies(${TEST_NAME} ${WRAPPER_LIB})
     add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
     set_tests_properties(${TEST_NAME} PROPERTIES
-            PASS_REGULAR_EXPRESSION ${EXPECTED_TEST_RESULT}
+            REQUIRED_PASS_REGULAR_EXPRESSION ${EXPECTED_TEST_RESULT}
     )
 endfunction()
 
@@ -200,13 +200,17 @@ add_dynamic_wrapper_testcase_2(wrapper_test_16 example_app_4.c normal_mpi modifi
 # these cases use wrapper library with normal header: thus need to assume wildcard usage and abort on detection of this
 add_dynamic_wrapper_testcase_2(wrapper_test_17 example_app_4.c modified_mpi modified_mpi wrapper_normal_no "Trait violation found after dlopen")
 add_dynamic_wrapper_testcase_2(wrapper_test_18 example_app_4.c modified_mpi modified_mpi wrapper_normal_with "Trait violation found after dlopen")
+# expected to fail
+set_tests_properties(wrapper_test_17 PROPERTIES WILL_FAIL TRUE)
+set_tests_properties(wrapper_test_18 PROPERTIES WILL_FAIL TRUE)
 
 # in this case the wrapper does not have wildcards, so this configuration is valid
 add_dynamic_wrapper_testcase_2(wrapper_test_19 example_app_4.c modified_mpi modified_mpi wrapper_modified_no "MPI Initialized with wildcards DISabled")
 
 # wildcards are needed, but this is only visible after MPI init. Abort
 add_dynamic_wrapper_testcase_2(wrapper_test_20 example_app_4.c modified_mpi modified_mpi wrapper_modified_with "Trait violation found after dlopen")
-
+# expected to fail
+set_tests_properties(wrapper_test_20 PROPERTIES WILL_FAIL TRUE)
 
 # and cases compiled against modified header but executed with normal mpi library
 add_dynamic_wrapper_testcase_2(wrapper_test_21 example_app_4.c modified_mpi normal_mpi wrapper_normal_no "Normal MPI always is using wildcards")
