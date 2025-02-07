@@ -20,10 +20,9 @@
 
 #include <time.h>
 // no get tf.nsec in seconds
-int64_t difftimespec_ns(const struct timespec after, const struct timespec before)
-{
-    return ((int64_t)after.tv_sec - (int64_t)before.tv_sec) * (int64_t)1000000000
-         + ((int64_t)after.tv_nsec - (int64_t)before.tv_nsec);
+int64_t difftimespec_ns(const struct timespec after, const struct timespec before) {
+    return ((int64_t) after.tv_sec - (int64_t) before.tv_sec) * (int64_t) 1000000000
+           + ((int64_t) after.tv_nsec - (int64_t) before.tv_nsec);
 }
 
 double total_time_spent = 0;
@@ -47,7 +46,7 @@ GPtrArray *all_traits;
 // from:
 // https://stackoverflow.com/questions/15779185/how-to-list-on-the-fly-all-the-functions-symbols-available-in-c-code-on-a-linux
 // only works for 64 bit
-static_assert(sizeof(ElfW(Addr)) == sizeof(Elf64_Addr),"Currently Only Supports 64 bit");
+static_assert(sizeof(ElfW(Addr)) == sizeof(Elf64_Addr), "Currently Only Supports 64 bit");
 
 static uint32_t GetNumberOfSymbolsFromGnuHash(const Elf64_Addr gnuHashAddress) {
     // See https://flapenguin.me/2017/05/10/elf-lookup-dt-gnu-hash/ and
@@ -279,24 +278,7 @@ bool check_skip_library(struct dl_phdr_info *info, struct trait_results *trait) 
     return false;
 }
 
-int trait_evaluation_callback(struct dl_phdr_info *info, size_t size, void *data) {
-    struct trait_results *trait = data;
-
-    library_count++;
-    /* ElfW is a macro that creates proper typenames for the used system architecture
-    * (e.g. on a 32 bit system, ElfW(Dyn*) becomes "Elf32_Dyn*") */
-
-    const char *lib_name = strlen(info->dlpi_name) == 0 ? "(main binary)" : info->dlpi_name;
-    //printf("Read Library %d: %s\n", library_count, lib_name);
-    if (strlen(info->dlpi_name) == 0) {
-        assert(library_count == 1 && "The Main Binary is not the first one to be analyzed??");
-    }
-
-    if (check_skip_library(info, trait)) {
-        printf("Library %d: %s: skip\n", library_count, lib_name);
-        return 0; // skip
-    }
-
+int evaluate_trait_on_library(struct dl_phdr_info *info, const char *lib_name, struct trait_results *trait) {
     // we need to check again if it still holds for this library
     trait->is_true = FALSE;
     bool has_marker = false;
@@ -433,13 +415,30 @@ int trait_evaluation_callback(struct dl_phdr_info *info, size_t size, void *data
         }
     }
     return 0;
+}
 
+int trait_evaluation_callback(struct dl_phdr_info *info, size_t size, void *data) {
+    struct trait_results *trait = data;
+
+    library_count++;
+
+    const char *lib_name = strlen(info->dlpi_name) == 0 ? "(main binary)" : info->dlpi_name;
+    //printf("Read Library %d: %s\n", library_count, lib_name);
+    if (strlen(info->dlpi_name) == 0) {
+        assert(library_count == 1 && "The Main Binary is not the first one to be analyzed??");
+    }
+
+    if (check_skip_library(info, trait)) {
+        printf("Library %d: %s: skip\n", library_count, lib_name);
+        return 0; // skip
+    }
+
+    return evaluate_trait_on_library(info, lib_name, trait);
     // nonzero ABORTs reading in the other libraries
 }
 
 
 void evaluate_trait(trait_handle_type trait) {
-
     struct timespec start, end;
 
     clock_gettime(CLOCK_REALTIME, &start);
@@ -471,11 +470,10 @@ void evaluate_trait(trait_handle_type trait) {
     trait->is_evluated = true;
     clock_gettime(CLOCK_REALTIME, &end);
 
-    int64_t time_spent = difftimespec_ns(end,start);
-    total_time_spent += time_spent/1000000000.0;
-    printf("evaluated Trait %s in %fs\n",trait->options.name,time_spent/1000000000.0);
-    printf("Total Time used for all trait evaluations: %fs\n",total_time_spent);
-
+    int64_t time_spent = difftimespec_ns(end, start);
+    total_time_spent += time_spent / 1000000000.0;
+    printf("evaluated Trait %s in %fs\n", trait->options.name, time_spent / 1000000000.0);
+    printf("Total Time used for all trait evaluations: %fs\n", total_time_spent);
 }
 
 trait_handle_type register_trait(struct trait_options *options) {
