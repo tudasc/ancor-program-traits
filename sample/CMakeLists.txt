@@ -164,5 +164,43 @@ if (BUILD_MINI_APPS)
             ENVIRONMENT "OMP_NUM_THREADS=1"
             PROCESSORS 2
             PASS_REGULAR_EXPRESSION "MPI Initialized with wildcards DISabled")
+
+    ExternalProject_Add(
+            kripke
+            GIT_REPOSITORY https://github.com/LLNL/Kripke.git
+            GIT_TAG bf87466
+            CMAKE_ARGS
+            -DENABLE_MPI=On
+            -DENABLE_OPENMP=On
+            -DCMAKE_C_COMPILER=${MPICC}
+            -DCMAKE_CXX_COMPILER=${MPICXX}
+            -DMPI_ROOT=${MPICH_INSTALL_DIR}
+            DEPENDS mpich
+            INSTALL_COMMAND ""
+    )
+    ExternalProject_Get_Property(kripke BINARY_DIR)
+    set(KRIPKE_EXE ${BINARY_DIR}/kripke.exe)
+
+    #without LD_PRELOAD
+    add_test(NAME kripke
+            COMMAND bash -c "${MPIRUN} -n 4 ${KRIPKE_EXE} --procs 2,2,1"
+
+    )
+    set_tests_properties(kripke PROPERTIES
+            ENVIRONMENT "OMP_NUM_THREADS=1"
+            PROCESSORS 4
+            PASS_REGULAR_EXPRESSION "Solver terminated")
+
+
+    #with out wrapper
+    add_test(NAME kripke_with_wrapper
+            # run with our wrapper loaded as a normal pmpi tool
+            COMMAND bash -c "LD_PRELOAD=$<TARGET_FILE:mpi_wrapper_lib> ${MPIRUN} -n 4 ${KRIPKE_EXE} --procs 2,2,1"
+
+    )
+    set_tests_properties(kripke_with_wrapper PROPERTIES
+            ENVIRONMENT "OMP_NUM_THREADS=1"
+            PROCESSORS 4
+            PASS_REGULAR_EXPRESSION "MPI Initialized with wildcards DISabled")
 endif ()
 
