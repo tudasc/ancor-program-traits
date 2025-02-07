@@ -12,6 +12,7 @@
 #include <unistd.h>
 
 #include <link.h>
+#include <dlfcn.h>
 #include <elf.h>
 
 #include <glib.h>
@@ -417,6 +418,24 @@ int evaluate_trait_on_library(struct dl_phdr_info *info, const char *lib_name, s
     return 0;
 }
 
+struct callback_for_dlopen_data {
+    const char *target_name;
+    struct trait_results *trait;
+};
+
+int trait_evaluation_callback_for_dlopen(struct dl_phdr_info *info, size_t size, void *data) {
+    struct callback_for_dlopen_data *callback_data = (struct callback_for_dlopen_data *) data;
+    struct trait_results *trait = callback_data->trait;
+    const char *lib_name = strlen(info->dlpi_name) == 0 ? "(main binary)" : info->dlpi_name;
+
+    // find the library just opened, ignore others as they are already analyzed
+    if (strcmp(info->dlpi_name, callback_data->target_name) == 0) {
+        return evaluate_trait_on_library(info, lib_name, trait);
+    } else {
+        return 0; // next library
+    }
+}
+
 int trait_evaluation_callback(struct dl_phdr_info *info, size_t size, void *data) {
     struct trait_results *trait = data;
 
@@ -440,8 +459,8 @@ int trait_evaluation_callback(struct dl_phdr_info *info, size_t size, void *data
 
 void evaluate_trait(trait_handle_type trait) {
     struct timespec start, end;
-
     clock_gettime(CLOCK_REALTIME, &start);
+
     assert(g_ptr_array_find(all_traits, trait, NULL));
     assert(!trait->is_evluated);
     printf("evaluate trait: %s\n", trait->options.name);
@@ -469,7 +488,6 @@ void evaluate_trait(trait_handle_type trait) {
 #endif
     trait->is_evluated = true;
     clock_gettime(CLOCK_REALTIME, &end);
-
     int64_t time_spent = difftimespec_ns(end, start);
     total_time_spent += time_spent / 1000000000.0;
     printf("evaluated Trait %s in %fs\n", trait->options.name, time_spent / 1000000000.0);
@@ -593,19 +611,22 @@ plthook_t *get_open_plthook(const struct dl_phdr_info *info) {
 #endif
 
 #ifdef HOOK_DLOPEN
-void evaluate_trait_on_dlopen(void *trait_data, void *filename) {
+void evaluate_trait_on_dlopen(void *trait_data, void *cb_data) {
     trait_handle_type trait = (trait_handle_type) trait_data;
+    struct callback_for_dlopen_data *callback_data = (struct callback_for_dlopen_data *) cb_data;
     if (check_trait(trait)) {
         // if it was false from the beginning: nothing to do
         if (trait->options.check_for_dlopen) {
             trait->is_evluated = false;
             trait->is_true = false;
+
             // re-evaluate if still holds with added library
-            evaluate_trait(trait);
+            callback_data->trait = trait;
+            dl_iterate_phdr(&trait_evaluation_callback_for_dlopen, callback_data);
         }
         if (!trait->is_true) {
             printf("Trait violation found after dlopen (%s not satisfied anymore after loading %s)\n",
-                   trait->options.name, (char *) filename);
+                   trait->options.name, callback_data->target_name);
             printf("Aborting...\n");
             exit(EXIT_FAILURE);
         }
@@ -628,8 +649,26 @@ static void *our_dlopen(const char *filename, int flags) {
     void *handle = original_dlopen(filename, flags);
 
     if (handle) {
+        struct timespec start, end;
+        clock_gettime(CLOCK_REALTIME, &start);
+
+        struct callback_for_dlopen_data callback_data;
+        struct link_map *lmap;
+        // Retrieve the link_map for the handle
+        if (dlinfo(handle, RTLD_DI_LINKMAP, &lmap) != 0) {
+            assert(FALSE);
+            //TODO report error?
+        }
+        callback_data.target_name = lmap->l_name;
+
         // Load was successful, need to analyze if program with additional loaded library still satisfies all the traits
-        g_ptr_array_foreach(all_traits, evaluate_trait_on_dlopen, filename);
+        g_ptr_array_foreach(all_traits, evaluate_trait_on_dlopen, &callback_data);
+
+        clock_gettime(CLOCK_REALTIME, &end);
+        int64_t time_spent = difftimespec_ns(end, start);
+        total_time_spent += time_spent / 1000000000.0;
+        printf("evaluated if traits still hold after dlopen in %fs\n", time_spent / 1000000000.0);
+        printf("Total Time used for all trait evaluations: %fs\n", total_time_spent);
     }
 
     return handle;
