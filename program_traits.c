@@ -135,6 +135,7 @@ int check_static_symbol_table_of_main_binary(struct trait_results *trait) {
     if (fread(&ehdr, 1, sizeof(ElfW(Ehdr)), file) != sizeof(ElfW(Ehdr))) {
         // failed to read elf header
         free(program_path);
+        fclose(file);
         assert(trait->is_true==FALSE);
         return 1;
     }
@@ -145,6 +146,7 @@ int check_static_symbol_table_of_main_binary(struct trait_results *trait) {
         ehdr.e_ident[EI_MAG3] != ELFMAG3) {
         //Not a valid ELF file
         free(program_path);
+        fclose(file);
         assert(trait->is_true==FALSE);
         return 1;
     }
@@ -176,6 +178,7 @@ int check_static_symbol_table_of_main_binary(struct trait_results *trait) {
         // did not find the symbol table or the string table with the names
         assert(trait->is_true==FALSE);
         free(program_path);
+        fclose(file);
         return 1;
     }
 
@@ -202,7 +205,7 @@ int check_static_symbol_table_of_main_binary(struct trait_results *trait) {
             free(symbols);
             free(strtab_data);
             free(program_path);
-
+            fclose(file);
             return 0;
         }
     }
@@ -210,6 +213,7 @@ int check_static_symbol_table_of_main_binary(struct trait_results *trait) {
     free(symbols);
     free(strtab_data);
     free(program_path);
+    fclose(file);
     assert(trait->is_true==FALSE);
     printf("Library: %s: DOES NOT have the Trait (even in static symbol table)\n", "(main Binary)");
     return 1;
