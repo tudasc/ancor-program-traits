@@ -197,10 +197,14 @@ int check_static_symbol_table_of_main_binary(struct trait_results *trait) {
     // read symbol names
     for (int i = 0; i < num_symbols; i++) {
         char *sym_name = &strtab_data[symbols[i].st_name];
+#ifndef NDEBUG
         printf("%s\n", sym_name);
+#endif
         if (strcmp(sym_name, trait->marker_to_look_for) == 0) {
             //marker found
+#ifndef NDEBUG
             printf("Library %d: %s: Found Marker (in static symbol table)\n", library_count, "(main Binary)");
+#endif
             trait->is_true = TRUE;
             free(symbols);
             free(strtab_data);
@@ -215,7 +219,9 @@ int check_static_symbol_table_of_main_binary(struct trait_results *trait) {
     free(program_path);
     fclose(file);
     assert(trait->is_true==FALSE);
+#ifndef NDEBUG
     printf("Library: %s: DOES NOT have the Trait (even in static symbol table)\n", "(main Binary)");
+#endif
     return 1;
 }
 
@@ -341,7 +347,9 @@ int evaluate_trait_on_library(struct dl_phdr_info *info, const char *lib_name, s
                         if (strcmp(sym_name, trait->marker_to_look_for) == 0) {
                             //marker found
                             trait->is_true = TRUE;
+#ifndef NDEBUG
                             printf("Library %d: %s: Found Marker\n", library_count, lib_name);
+#endif
                             has_marker = TRUE;
                         }
                         if (trait->options.check_for_dlopen && strcmp(sym_name, "dlopen") == 0 && !is_libdl(lib_name)) {
@@ -349,13 +357,17 @@ int evaluate_trait_on_library(struct dl_phdr_info *info, const char *lib_name, s
 
                             int status = install_dlopen_plt_hook(info);
                             if (status != 0) {
+#ifndef NDEBUG
                                 printf("Library %d: %s: Found dlopen, Failed to install plthook\n", library_count,
                                        lib_name);
+#endif
                                 trait->is_true = FALSE;
                                 return 1; // abort
                             }
 #else
+#ifndef NDEBUG
                             printf("Library %d: %s: Found dlopen\n", library_count, lib_name);
+#endif
                             trait->is_true = FALSE;
                             return 1; // abort
 #endif
@@ -365,14 +377,17 @@ int evaluate_trait_on_library(struct dl_phdr_info *info, const char *lib_name, s
 #ifdef HOOK_MPROTECT
                             int status = install_mprotect_plt_hook(info);
                             if (status != 0) {
+#ifndef NDEBUG
                                 printf("Library %d: %s: Found mprotect, Failed to install plthook\n", library_count,
                                        lib_name);
+#endif
                                 trait->is_true = FALSE;
                                 return 1; // abort
                             }
 #else
-
+#ifndef NDEBUG
                             printf("Library %d: %s: Found mprotect\n", library_count, lib_name);
+#endif
                             trait->is_true = FALSE;
                             return 1; // abort
 #endif
@@ -404,13 +419,17 @@ int evaluate_trait_on_library(struct dl_phdr_info *info, const char *lib_name, s
                 //will set trait->is_true appropriately
             } else {
                 trait->is_true = FALSE;
+#ifndef NDEBUG
                 printf("Library: %s: DOES NOT have the Trait\n", lib_name);
+#endif
                 // found violation: abort
                 return 1;
             }
         } else {
             // has none of the symbols that require the trait
+#ifndef NDEBUG
             printf("Library %d: %s: trait not required\n", library_count, lib_name);
+#endif
             trait->is_true = TRUE;
             return 0;
         }
@@ -431,7 +450,7 @@ int trait_evaluation_callback_for_dlopen(struct dl_phdr_info *info, size_t size,
     // find the library just opened, ignore others as they are already analyzed
     if (strcmp(info->dlpi_name, callback_data->target_name) == 0) {
         evaluate_trait_on_library(info, lib_name, trait);
-        return 1;// found correct library:stop
+        return 1; // found correct library:stop
     } else {
         return 0; // next library
     }
@@ -449,7 +468,9 @@ int trait_evaluation_callback(struct dl_phdr_info *info, size_t size, void *data
     }
 
     if (check_skip_library(info, trait)) {
+#ifndef NDEBUG
         printf("Library %d: %s: skip\n", library_count, lib_name);
+#endif
         return 0; // skip
     }
 
@@ -464,7 +485,9 @@ void evaluate_trait(trait_handle_type trait) {
 
     assert(g_ptr_array_find(all_traits, trait, NULL));
     assert(!trait->is_evluated);
+#ifndef NDEBUG
     printf("evaluate trait: %s\n", trait->options.name);
+#endif
 
     // reset library_count
     library_count = 0;
@@ -474,15 +497,19 @@ void evaluate_trait(trait_handle_type trait) {
 
 #ifndef HOOK_DLOPEN
     if (trait->options.check_for_dlopen && trait->found_dlopen) {
+#ifndef NDEBUG
         printf("Found Use of dlopen, cannot analyze trait, must assume it does not hold anymore after dlopen usage\n");
+#endif
         assert(trait->is_true == false);
     }
     // #ifdef HOOK_DLOPEN : the hook will be installed while iterating over all libraries
 #endif
 #ifndef HOOK_MPROTECT
     if (trait->options.check_for_mprotect && trait->found_mprotect) {
+#ifndef NDEBUG
         printf(
             "Found Use of mprotect , cannot analyze trait, must assume it does not hold anymore after mprotect usage\n");
+#endif
         assert(trait->is_true == false);
     }
     // #ifdef HOOK_MPROTECT : the hook will be installed when iterating over all libraries
@@ -496,7 +523,9 @@ void evaluate_trait(trait_handle_type trait) {
 }
 
 trait_handle_type register_trait(struct trait_options *options) {
+#ifndef NDEBUG
     printf("register trait: %s\n", options->name);
+#endif
 
     if (all_traits == NULL) {
         // allocate new
@@ -548,7 +577,9 @@ trait_handle_type register_trait(struct trait_options *options) {
 
 // check if the trait is present
 bool check_trait(trait_handle_type trait) {
+#ifndef NDEBUG
     printf("check trait: %s\n", trait->options.name);
+#endif
     assert(g_ptr_array_find(all_traits, trait, NULL));
 
     if (!trait->is_evluated) {
@@ -559,7 +590,9 @@ bool check_trait(trait_handle_type trait) {
 
 
 void remove_trait(trait_handle_type trait) {
+#ifndef NDEBUG
     printf("remove trait: %s\n", trait->options.name);
+#endif
     assert(g_ptr_array_find(all_traits, trait, NULL));
     g_ptr_array_remove(all_traits, trait);
     free(trait->marker_to_look_for);
@@ -597,12 +630,16 @@ plthook_t *get_open_plthook(const struct dl_phdr_info *info) {
         //info->dlpi_addr may point to NULL but relocation may be done,
         // need default plthook_open to open main binary
         if (plthook_open(&plthook, NULL) != 0) {
+#ifndef NDEBUG
             printf("plthook_open error: %s\n", plthook_error());
+#endif
             return NULL;
         }
     } else {
         if (plthook_open_by_address(&plthook, (void *) info->dlpi_addr) != 0) {
+#ifndef NDEBUG
             printf("plthook_open error: %s\n", plthook_error());
+#endif
             return NULL;
         }
     }
@@ -644,7 +681,9 @@ dlopen_fnptr_t original_dlopen = NULL;
 
 // Our replacement dlopen
 static void *our_dlopen(const char *filename, int flags) {
+#ifndef NDEBUG
     printf("Intercept Loading library: %s\n", filename);
+#endif
 
     // Call original dlopen
     assert(original_dlopen!=NULL);
@@ -681,14 +720,17 @@ int install_dlopen_plt_hook(struct dl_phdr_info *info) {
     assert(dlopen != NULL);
     plthook_t *plthook = get_open_plthook(info);
     if (plthook == NULL) { return -1; }
-
+#ifndef NDEBUG
     printf("Installing plthook for dlopen\n");
+#endif
     if (original_dlopen == NULL) {
         original_dlopen = dlopen;
     }
 
     if (plthook_replace(plthook, "dlopen", (void *) our_dlopen, NULL) != 0) {
+#ifndef NDEBUG
         printf("plthook_replace error: %s\n", plthook_error());
+#endif
         plthook_close(plthook);
         return -1;
     }
@@ -732,12 +774,16 @@ int install_mprotect_plt_hook(struct dl_phdr_info *info) {
     assert(mprotect != NULL);
     plthook_t *plthook = get_open_plthook(info);
     if (plthook == NULL) { return -1; }
+#ifndef NDEBUG
     printf("Installing plthook for mprotect\n");
+#endif
     if (original_mprotect == NULL) {
         original_mprotect = mprotect;
     }
     if (plthook_replace(plthook, "mprotect", (void *) our_dlopen, NULL) != 0) {
+#ifndef NDEBUG
         printf("plthook_replace error: %s\n", plthook_error());
+#endif
         plthook_close(plthook);
         return -1;
     }
