@@ -153,7 +153,8 @@ int check_static_symbol_table_of_main_binary(struct trait_results *trait) {
 
 
     // Seek to section header table
-    fseek(file, ehdr.e_shoff, SEEK_SET);
+    int fseek_error = fseek(file, ehdr.e_shoff, SEEK_SET);
+    assert(fseek_error==0);
 
     ElfW(Shdr) shdr;
     ElfW(Shdr) symtab, strtab;
@@ -161,14 +162,15 @@ int check_static_symbol_table_of_main_binary(struct trait_results *trait) {
 
     // Find the symbol table and string table sections
     for (unsigned int i = 0; i < ehdr.e_shnum; i++) {
-        size_t read_size= fread(&shdr, 1, sizeof(ElfW(Shdr)), file);
+        size_t read_size = fread(&shdr, 1, sizeof(ElfW(Shdr)), file);
         assert(read_size==sizeof(ElfW(Shdr)));
         if (shdr.sh_type == SHT_SYMTAB) {
             symtab = shdr;
             found_symtab = 1;
             // found the symbol table, need to get the associated string table for the names
-            fseek(file, ehdr.e_shoff + sizeof(ElfW(Shdr)) * symtab.sh_link, SEEK_SET);
-            read_size=fread(&strtab, 1, sizeof(ElfW(Shdr)), file);
+            fseek_error = fseek(file, ehdr.e_shoff + sizeof(ElfW(Shdr)) * symtab.sh_link, SEEK_SET);
+            assert(fseek_error==0);
+            read_size = fread(&strtab, 1, sizeof(ElfW(Shdr)), file);
             assert(read_size==sizeof(ElfW(Shdr)));
             if (strtab.sh_type == SHT_STRTAB) {
                 found_strtab = 1;
@@ -185,7 +187,8 @@ int check_static_symbol_table_of_main_binary(struct trait_results *trait) {
     }
 
     // Read the symbol table
-    fseek(file, symtab.sh_offset, SEEK_SET);
+    fseek_error = fseek(file, symtab.sh_offset, SEEK_SET);
+    assert(fseek_error==0);
     int num_symbols = symtab.sh_size / symtab.sh_entsize;
     ElfW(Sym) *symbols = malloc(symtab.sh_size);
 
@@ -193,7 +196,8 @@ int check_static_symbol_table_of_main_binary(struct trait_results *trait) {
     assert(read_size==symtab.sh_size);
 
     // Read the string table
-    fseek(file, strtab.sh_offset, SEEK_SET);
+    fseek_error = fseek(file, strtab.sh_offset, SEEK_SET);
+    assert(fseek_error==0);
     char *strtab_data = malloc(strtab.sh_size);
     read_size = fread(strtab_data, 1, strtab.sh_size, file);
     assert(read_size==strtab.sh_size);
