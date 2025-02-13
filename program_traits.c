@@ -161,13 +161,15 @@ int check_static_symbol_table_of_main_binary(struct trait_results *trait) {
 
     // Find the symbol table and string table sections
     for (unsigned int i = 0; i < ehdr.e_shnum; i++) {
-        fread(&shdr, 1, sizeof(ElfW(Shdr)), file);
+        size_t read_size= fread(&shdr, 1, sizeof(ElfW(Shdr)), file);
+        assert(read_size==sizeof(ElfW(Shdr)));
         if (shdr.sh_type == SHT_SYMTAB) {
             symtab = shdr;
             found_symtab = 1;
             // found the symbol table, need to get the associated string table for the names
             fseek(file, ehdr.e_shoff + sizeof(ElfW(Shdr)) * symtab.sh_link, SEEK_SET);
-            fread(&strtab, 1, sizeof(ElfW(Shdr)), file);
+            read_size=fread(&strtab, 1, sizeof(ElfW(Shdr)), file);
+            assert(read_size==sizeof(ElfW(Shdr)));
             if (strtab.sh_type == SHT_STRTAB) {
                 found_strtab = 1;
             }
@@ -187,12 +189,14 @@ int check_static_symbol_table_of_main_binary(struct trait_results *trait) {
     int num_symbols = symtab.sh_size / symtab.sh_entsize;
     ElfW(Sym) *symbols = malloc(symtab.sh_size);
 
-    fread(symbols, 1, symtab.sh_size, file);
+    size_t read_size = fread(symbols, 1, symtab.sh_size, file);
+    assert(read_size==symtab.sh_size);
 
     // Read the string table
     fseek(file, strtab.sh_offset, SEEK_SET);
     char *strtab_data = malloc(strtab.sh_size);
-    fread(strtab_data, 1, strtab.sh_size, file);
+    read_size = fread(strtab_data, 1, strtab.sh_size, file);
+    assert(read_size==strtab.sh_size);
 
     // read symbol names
     for (int i = 0; i < num_symbols; i++) {
