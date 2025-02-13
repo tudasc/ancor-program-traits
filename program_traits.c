@@ -159,9 +159,10 @@ int check_static_symbol_table_of_main_binary(struct trait_results *trait) {
     ElfW(Shdr) shdr;
     ElfW(Shdr) symtab, strtab;
     int found_symtab = 0, found_strtab = 0;
+    assert(sizeof(ElfW(Shdr))==ehdr.e_shentsize);
 
     // Find the symbol table and string table sections
-    for (unsigned int i = 0; i < ehdr.e_shnum; i++) {
+    for (unsigned int i = 1; i < ehdr.e_shnum; i++) {
         size_t read_size = fread(&shdr, 1, sizeof(ElfW(Shdr)), file);
         assert(read_size==sizeof(ElfW(Shdr)));
         if (shdr.sh_type == SHT_SYMTAB) {
