@@ -83,4 +83,3 @@ configure_file(program_traits.h.in program_traits.h @ONLY)
 
 add_subdirectory(tests)
 add_subdirectory(sample)
-add_subdirectory(performance-evaluation)

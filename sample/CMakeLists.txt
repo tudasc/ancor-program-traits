@@ -5,30 +5,19 @@ include(ExternalProject)
 set(MPICH_CFLAGS "${CMAKE_C_FLAGS} -DUSE_WILDCARD")
 set(MPICH_CXXFLAGS "${CMAKE_CXX_FLAGS} -DUSE_WILDCARD")
 
-set(MPICH_CONFIGURE_FLAGS MPICHLIB_CFLAGS="${MPICH_CFLAGS}" MPICHLIB_CXXFLAGS="${MPICH_CXXFLAGS}")
+set(MPICH_CONFIGURE_FLAGS MPICHLIB_CFLAGS=${MPICH_CFLAGS} MPICHLIB_CXXFLAGS=${MPICH_CXXFLAGS})
 #set(MPICH_CONFIGURE_FLAGS "")
-
-if(NOT DEFINED CMAKE_BUILD_PARALLEL_LEVEL)
-    set(CMAKE_BUILD_PARALLEL_LEVEL 1)
-endif ()
 
 ExternalProject_Add(
         mpich
         URL https://www.mpich.org/static/downloads/4.2.3/mpich-4.2.3.tar.gz
         URL_HASH MD5=b0c2a9690ce5325d69b7022219d94f64
-        # dont rebuild everytime,
-        UPDATE_COMMAND ""
-        CONFIGURE_HANDLED_BY_BUILD true
-        CONFIGURE_COMMAND ""
-        # skip patch if already present
-        PATCH_COMMAND patch -N -b <SOURCE_DIR>/src/include/mpi.h.in ${CMAKE_CURRENT_SOURCE_DIR}/mpi.h.in.patch | true
-        #if mpi.h.in.patch was changed, it should result in an error when trying to re-apply the patch provoking one to force re-download and extraction
-        # only run build step if mpicc is missing
-        BUILD_COMMAND
-        bash ${CMAKE_CURRENT_SOURCE_DIR}/configure_and_build_mpich.sh <INSTALL_DIR> <SOURCE_DIR> ${CMAKE_BUILD_PARALLEL_LEVEL} ${CMAKE_C_COMPILER} "${MPICH_CONFIGURE_FLAGS}"
+        CONFIGURE_COMMAND
+        <SOURCE_DIR>/configure --prefix <INSTALL_DIR> CC=${CMAKE_C_COMPILER} ${MPICH_CONFIGURE_FLAGS}
+        PATCH_COMMAND patch -b <SOURCE_DIR>/src/include/mpi.h.in ${CMAKE_CURRENT_SOURCE_DIR}/mpi.h.in.patch
+        BUILD_COMMAND make -j ${CMAKE_BUILD_PARALLEL_LEVEL}
         INSTALL_COMMAND make install
         DOWNLOAD_EXTRACT_TIMESTAMP true
-        #UPDATE_DISCONNECTED true
         # need to declare the build byproducts for ninja
         BUILD_BYPRODUCTS <INSTALL_DIR>/lib/libmpi.so <INSTALL_DIR>/bin/mpicc <INSTALL_DIR>/bin/mpicxx <INSTALL_DIR>/bin/mpirun
 )
@@ -106,7 +95,6 @@ if (BUILD_MINI_APPS)
             lulesh
             GIT_REPOSITORY https://github.com/LLNL/LULESH.git
             GIT_TAG 3e01c40b3281aadb7f996525cdd4a3354f6d3801
-            UPDATE_DISCONNECTED true
             CMAKE_ARGS
             -DCMAKE_C_COMPILER=${MPICC}
             -DCMAKE_CXX_COMPILER=${MPICXX}
@@ -143,7 +131,6 @@ if (BUILD_MINI_APPS)
             hpcg
             GIT_REPOSITORY https://github.com/hpcg-benchmark/hpcg.git
             GIT_TAG 114602d
-            UPDATE_DISCONNECTED true
             CMAKE_ARGS
             -DHPCG_ENABLE_MPI=On
             -DHPCG_ENABLE_OPENMP=On
@@ -182,7 +169,6 @@ if (BUILD_MINI_APPS)
             kripke
             GIT_REPOSITORY https://github.com/LLNL/Kripke.git
             GIT_TAG bf87466
-            UPDATE_DISCONNECTED true
             CMAKE_ARGS
             -DENABLE_MPI=On
             -DENABLE_OPENMP=On
