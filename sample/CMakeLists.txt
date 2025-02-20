@@ -21,7 +21,7 @@ ExternalProject_Add(
         #if mpi.h.in.patch was changed, it should result in an error when trying to re-apply the patch provoking one to force re-download and extraction
         # only run build step if mpicc is missing
         BUILD_COMMAND
-        bash ${CMAKE_CURRENT_SOURCE_DIR}/configure_and_build_mpich.sh <INSTALL_DIR> <SOURCE_DIR> ${CMAKE_C_COMPILER} "${MPICH_CONFIGURE_FLAGS}" ${CMAKE_BUILD_PARALLEL_LEVEL}
+        bash ${CMAKE_CURRENT_SOURCE_DIR}/configure_and_build_mpich.sh <INSTALL_DIR> <SOURCE_DIR> ${CMAKE_BUILD_PARALLEL_LEVEL} ${CMAKE_C_COMPILER} "${MPICH_CONFIGURE_FLAGS}"
         INSTALL_COMMAND make install
         DOWNLOAD_EXTRACT_TIMESTAMP true
         #UPDATE_DISCONNECTED true
