@@ -5,8 +5,12 @@ include(ExternalProject)
 set(MPICH_CFLAGS "${CMAKE_C_FLAGS} -DUSE_WILDCARD")
 set(MPICH_CXXFLAGS "${CMAKE_CXX_FLAGS} -DUSE_WILDCARD")
 
-set(MPICH_CONFIGURE_FLAGS MPICHLIB_CFLAGS=${MPICH_CFLAGS} MPICHLIB_CXXFLAGS=${MPICH_CXXFLAGS})
+set(MPICH_CONFIGURE_FLAGS MPICHLIB_CFLAGS="${MPICH_CFLAGS}" MPICHLIB_CXXFLAGS="${MPICH_CXXFLAGS}")
 #set(MPICH_CONFIGURE_FLAGS "")
+
+if(NOT DEFINED CMAKE_BUILD_PARALLEL_LEVEL)
+    set(CMAKE_BUILD_PARALLEL_LEVEL 1)
+endif ()
 
 ExternalProject_Add(
         mpich
@@ -21,7 +25,7 @@ ExternalProject_Add(
         #if mpi.h.in.patch was changed, it should result in an error when trying to re-apply the patch provoking one to force re-download and extraction
         # only run build step if mpicc is missing
         BUILD_COMMAND
-        bash ${CMAKE_CURRENT_SOURCE_DIR}/configure_and_build_mpich.sh <INSTALL_DIR> <SOURCE_DIR> ${CMAKE_C_COMPILER} "${MPICH_CONFIGURE_FLAGS}" ${CMAKE_BUILD_PARALLEL_LEVEL}
+        bash ${CMAKE_CURRENT_SOURCE_DIR}/configure_and_build_mpich.sh <INSTALL_DIR> <SOURCE_DIR> ${CMAKE_BUILD_PARALLEL_LEVEL} ${CMAKE_C_COMPILER} "${MPICH_CONFIGURE_FLAGS}"
         INSTALL_COMMAND make install
         DOWNLOAD_EXTRACT_TIMESTAMP true
         #UPDATE_DISCONNECTED true

@@ -2,11 +2,13 @@
 
 INSTALL_DIR="$1"
 SOURCE_DIR="$2"
-C_COMPILER="$3"
-CONFIGURE_FLAGS="$4"
-PARALLEL_LEVEL="$5"
+PARALLEL_LEVEL="$3"
+C_COMPILER="$4"
+
+# all other args are configure args
+shift 4
 
 if [ ! -f "$INSTALL_DIR/bin/mpicc" ]; then
-    $SOURCE_DIR/configure --prefix="$INSTALL_DIR" CC="$C_COMPILER" $CONFIGURE_FLAGS
-    make -j "$PARALLEL_LEVEL"
+    $SOURCE_DIR/configure --prefix=$INSTALL_DIR CC=$C_COMPILER "$@" && make -j $PARALLEL_LEVEL
+    exit $?
 fi
