@@ -82,5 +82,10 @@ configure_file(program_traits.h.in program_traits.h @ONLY)
 
 
 add_subdirectory(tests)
+
+option(BUILD_MPI_EXAMPLES "Enable building of MPI examples" Off)
+if (BUILD_MPI_EXAMPLES)
 add_subdirectory(sample)
+endif ()
+
 add_subdirectory(performance-evaluation)
