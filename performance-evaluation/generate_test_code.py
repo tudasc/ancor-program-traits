@@ -51,7 +51,7 @@ def get_lib_link_flag(lib):
     return "-l"+lib_name[3:-3]
 
 # Generate test C program
-def generate_test_program():
+def generate_test_program(output="test_code"):
     lib_func_map = select_libs_and_funcs()
 
     code = """#include <stdio.h>\n"""
@@ -79,10 +79,9 @@ def generate_test_program():
     code += """    printf("Test complete.\\n");\n    return 0;\n}\n"""
 
     # Save to file
-    with open("test_program.c", "w") as f:
+    with open(output+".c", "w") as f:
         f.write(code)
 
-    # Print selected libraries and functions
     print("Generated test program using:")
     for lib, funcs in lib_func_map.items():
         print(f"  {lib}: {', '.join(funcs)}")
@@ -90,7 +89,15 @@ def generate_test_program():
     print("Try compiling ")
 
     flags = [get_lib_link_flag(l) for l in lib_func_map]
-    print("gcc test_program.c "+" ".join(flags))
+    command ="gcc "+output+".c -o"+output+".exe " +" ".join(flags)
+    if (subprocess.call(command.split())==0):
+        exit(0)
+    else:
+        "print fail compilation: trying again"
+        generate_test_program(output=output)
+
+
+
 
 
 

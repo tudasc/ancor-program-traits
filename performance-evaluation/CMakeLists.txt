@@ -1,4 +1,4 @@
-add_executable(evaluation_driver evaluation_driver.c)
+add_executable(evaluation_driver evaluation_testcode.c)
 target_include_directories(evaluation_driver PUBLIC ${PROGRAM_TRAITS_INCLUDE_DIR})
 target_link_libraries(evaluation_driver PRIVATE ancor_programm_traits)
 
