@@ -61,6 +61,7 @@ def generate_test_program(compilation_tries=10, output="test_code", use_traits_l
     lib_func_map = select_libs_and_funcs()
 
     if compilation_tries == 0:
+        print("Failure: Reached maximum compilation attempts")
         return
 
     code = """
@@ -132,6 +133,7 @@ int main(int argc, char **argv) {
 
     code += """}\n"""
 
+    # load symbols with dlopen if necessary
     code += """\nvoid dlopen_libraries() {\n"""
     if use_dlopen:
         # TODO implement
@@ -149,18 +151,21 @@ int main(int argc, char **argv) {
     print("Try compiling ")
 
     flags = [get_lib_link_flag(l) for l in lib_func_map]
-    # TODO cmake should configure this script
+    # TODO remove hardcoded path:
+    #  cmake should configure this script appropriately
     command = f"gcc {output}.c -o{output}.exe "
     if use_traits_lib:
         command = command + ("-I /home/tim/ancor-programm-traits "
                              "-I /home/tim/ancor-programm-traits/cmake-build-debug "
                              "-L /home/tim/ancor-programm-traits/cmake-build-debug "
                              "-lancor_programm_traits ")
-        # note that there are spaces in string at the end of each line to split the diffferent args
+        # note that there are spaces in string at the end of each line to split the different args
 
     command = command + " ".join(flags)
-    if (subprocess.call(command.split()) == 0):
-        exit(0)
+    if subprocess.call(command.split()) == 0:
+        # successful
+        print(f"success, generated {output}.c and {output}.exe")
+        return
     else:
         print("fail compilation: trying again")
         generate_test_program(compilation_tries - 1, output, use_traits_lib, use_dlopen, use_weak_symbols)
