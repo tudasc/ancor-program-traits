@@ -38,6 +38,7 @@ int main(int argc, char **argv) {
     trait_options.num_symbols_require_trait = 1;
     trait_options.symbols_require_trait = malloc(sizeof(char *));
     trait_options.symbols_require_trait[0] = "evaluation_trait_required";
+    trait_options.num_libraies_to_skip = 0;
     // this is the worst case in terms of performance,
     // as it only finds the trait in main binary and need to analyze all libraries fully to understand that trait is not required for them
     trait_handle_type handle = register_trait(&trait_options);
