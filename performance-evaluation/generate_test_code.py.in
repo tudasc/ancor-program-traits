@@ -4,6 +4,11 @@ import subprocess
 import magic
 import argparse
 
+# cmake will configure this part
+compiler = "@CMAKE_C_COMPILER@"
+source_dir = "@CMAKE_SOURCE_DIR@"
+build_dir = "@CMAKE_BINARY_DIR@"
+
 
 # Get all shared libraries installed
 def get_shared_libs():
@@ -153,13 +158,10 @@ int main(int argc, char **argv) {
     flags = [get_lib_link_flag(l) for l in lib_func_map]
     # TODO remove hardcoded path:
     #  cmake should configure this script appropriately
-    command = f"gcc {output}.c -o{output}.exe "
+    command = f"{compiler} {output}.c -o{output}.exe "
     if use_traits_lib:
-        command = command + ("-I /home/tim/ancor-programm-traits "
-                             "-I /home/tim/ancor-programm-traits/cmake-build-debug "
-                             "-L /home/tim/ancor-programm-traits/cmake-build-debug "
-                             "-lancor_programm_traits ")
-        # note that there are spaces in string at the end of each line to split the different args
+        command = command + f"-I {source_dir} -I {build_dir} -L {build_dir} -lancor_programm_traits "
+        # note that there are spaces in string at the end of the line to split the different args
 
     command = command + " ".join(flags)
     if subprocess.call(command.split()) == 0:
