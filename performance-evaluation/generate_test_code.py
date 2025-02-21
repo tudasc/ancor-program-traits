@@ -95,7 +95,7 @@ int main(int argc, char **argv) {
     trait_handle_type handle = register_trait(&trait_options);
     free(trait_options.symbols_require_trait);
 
-    bool result = check_trait(handle);
+    bool result = check_trait(handle) || argc>3;
 #else
     bool result = argc>3
 #endif
