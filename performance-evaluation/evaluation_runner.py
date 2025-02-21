@@ -1,0 +1,66 @@
+import subprocess
+import pandas as pd
+from timeit import timeit
+from generate_test_code import generate_test_program
+import os
+
+# setup
+number_experiments = 1
+repetitions = 3
+
+output_filename = "test_program"
+
+
+def get_lib_usage_info(program):
+    try:
+        # Run ldd to get the linked libraries
+        result = subprocess.run(["ldd", program], capture_output=True, text=True, check=True)
+
+        total_size = 0
+        lib_count = 0
+
+        for line in result.stdout.splitlines():
+            # Ignore vdso
+            if "vdso" in line:
+                continue
+
+            # Extract the library path
+            parts = line.split(" => ")
+            if len(parts) == 2:
+                lib_path = parts[1].split(" (")[0].strip()
+            else:
+                lib_path = parts[0].split(" (")[0].strip()
+
+            if os.path.exists(lib_path):
+                lib_count += 1
+                total_size += os.path.getsize(lib_path)
+
+        return lib_count, total_size
+
+    except subprocess.CalledProcessError as e:
+        print(f"Error running ldd: {e}")
+        return None
+
+
+def main():
+    df = pd.DataFrame(["num_libs", "combined_libs_size", "timing_with", "timing_without"])
+
+    for i in range(number_experiments):
+        generate_test_program(output=output_filename, use_traits_lib=False)
+        count, size = get_lib_usage_info(output_filename + ".exe")
+
+        for
+        timing_without = timeit(stmt=f"subprocess.call('./{output_filename}.exe')", setup="import subprocess",
+                                number=1)
+
+        generate_test_program(output=output_filename, use_traits_lib=True)
+        timing_with = timeit(stmt=f"subprocess.call('./{output_filename}.exe')", setup="import subprocess",
+                             number=1)
+        print([count, size, timing_with, timing_without])
+        df.loc[i] = [count, size, timing_with, timing_without]
+
+    df.to_csv("evaluation_results.csv")
+
+
+if __name__ == "__main__":
+    main()
