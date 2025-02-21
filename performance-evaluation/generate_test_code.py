@@ -2,6 +2,7 @@ import os
 import random
 import subprocess
 import magic
+import argparse
 
 
 # Get all shared libraries installed
@@ -170,5 +171,24 @@ int main(int argc, char **argv) {
         generate_test_program(compilation_tries - 1, output, use_traits_lib, use_dlopen, use_weak_symbols)
 
 
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--compilation-tries", type=int, default=10, required=False)
+    parser.add_argument("--output", type=str, default="test_code", required=False)
+    parser.add_argument("--use-weak-symbols", action="store_true", required=False)
+    parser.add_argument("--use-dlopen", action="store_true", required=False)
+    parser.add_argument("--use_traits_lib", action="store_true", required=False)
+    return parser.parse_args()
+
+
+def main():
+    args = parse_args()
+    generate_test_program(args.compilation_tries,
+                          args.output,
+                          args.use_traits_lib,
+                          args.use_dlopen,
+                          args.use_weak_symbols)
+
+
 if __name__ == "__main__":
-    generate_test_program(10)
+    main()
