@@ -1,11 +1,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
-
 #include <math.h>
 #include <string.h>
-#include <math.h>
-
-
 #include "program_traits.h"
 #include "markers.h"
 
@@ -32,13 +28,13 @@ void dlopen_libraries() {
 int main(int argc, char **argv) {
 #ifdef USE_TRAITS
     struct trait_options trait_options;
+    memset(&trait_options,0,sizeof(struct trait_options));
     trait_options.check_for_dlopen = true;
     trait_options.check_for_mprotect = true;
     trait_options.name = "evaluation_trait";
     trait_options.num_symbols_require_trait = 1;
     trait_options.symbols_require_trait = malloc(sizeof(char *));
     trait_options.symbols_require_trait[0] = "evaluation_trait_required";
-    trait_options.num_libraies_to_skip = 0;
     // this is the worst case in terms of performance,
     // as it only finds the trait in main binary and need to analyze all libraries fully to understand that trait is not required for them
     trait_handle_type handle = register_trait(&trait_options);
@@ -46,7 +42,7 @@ int main(int argc, char **argv) {
 
     bool result = check_trait(handle);
 #else
-    bool result = argc>1
+    bool result = argc>3
 #endif
 
     dlopen_libraries();
