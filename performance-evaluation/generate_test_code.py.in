@@ -106,7 +106,7 @@ int main(int argc, char **argv) {
 
     bool result = check_trait(handle) || argc>3;
 #else
-    bool result = argc>3
+    bool result = argc>3;
 #endif
 
     dlopen_libraries();
