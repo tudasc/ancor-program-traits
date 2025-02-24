@@ -19,6 +19,10 @@
 
 #include <sys/mman.h>
 
+// if the library should measure the time taken on its own
+//#define MEASURE_TIMING
+
+#ifdef MEASURE_TIMING
 #include <time.h>
 // no get tf.nsec in seconds
 int64_t difftimespec_ns(const struct timespec after, const struct timespec before) {
@@ -27,6 +31,9 @@ int64_t difftimespec_ns(const struct timespec after, const struct timespec befor
 }
 
 double total_time_spent = 0;
+#endif
+
+
 
 #include "plthook.h"
 
@@ -489,8 +496,10 @@ int trait_evaluation_callback(struct dl_phdr_info *info, size_t size, void *data
 
 
 void evaluate_trait(trait_handle_type trait) {
+#ifdef MEASURE_TIMING
     struct timespec start, end;
     clock_gettime(CLOCK_REALTIME, &start);
+#endif
 
     assert(g_ptr_array_find(all_traits, trait, NULL));
     assert(!trait->is_evluated);
@@ -524,11 +533,13 @@ void evaluate_trait(trait_handle_type trait) {
     // #ifdef HOOK_MPROTECT : the hook will be installed when iterating over all libraries
 #endif
     trait->is_evluated = true;
+#ifdef MEASURE_TIMING
     clock_gettime(CLOCK_REALTIME, &end);
     int64_t time_spent = difftimespec_ns(end, start);
     total_time_spent += time_spent / 1000000000.0;
     printf("evaluated Trait %s in %fs\n", trait->options.name, time_spent / 1000000000.0);
     printf("Total Time used for all trait evaluations: %fs\n", total_time_spent);
+#endif
 }
 
 trait_handle_type register_trait(struct trait_options *options) {
@@ -699,8 +710,10 @@ static void *our_dlopen(const char *filename, int flags) {
     void *handle = original_dlopen(filename, flags);
 
     if (handle) {
+#ifdef MEASURE_TIMING
         struct timespec start, end;
         clock_gettime(CLOCK_REALTIME, &start);
+#endif
 
         struct callback_for_dlopen_data callback_data;
         struct link_map *lmap;
@@ -713,12 +726,13 @@ static void *our_dlopen(const char *filename, int flags) {
 
         // Load was successful, need to analyze if program with additional loaded library still satisfies all the traits
         g_ptr_array_foreach(all_traits, evaluate_trait_on_dlopen, &callback_data);
-
+#ifdef MEASURE_TIMING
         clock_gettime(CLOCK_REALTIME, &end);
         int64_t time_spent = difftimespec_ns(end, start);
         total_time_spent += time_spent / 1000000000.0;
         printf("evaluated if traits still hold after dlopen in %fs\n", time_spent / 1000000000.0);
         printf("Total Time used for all trait evaluations: %fs\n", total_time_spent);
+#endif
     }
 
     return handle;
