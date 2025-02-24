@@ -11,6 +11,8 @@ build_dir = "@CMAKE_BINARY_DIR@"
 
 
 shared_lib_list = None
+
+
 def get_shared_libs():
     global shared_lib_list
     if shared_lib_list is None:
@@ -47,8 +49,6 @@ def get_library_functions(lib_path):
 def select_libs_and_funcs(num_libs=3, num_funcs_per_lib=2):
     libs = get_shared_libs()
     selected_libs = random.sample(libs, min(num_libs, len(libs)))
-    print("selected:")
-    print(selected_libs)
 
     lib_func_map = {}
     for lib in selected_libs:
@@ -68,11 +68,13 @@ def get_lib_link_flag(lib):
 def generate_test_program(compilation_tries=10,
                           num_libs=3, num_funcs_per_lib=2,
                           output="test_code",
-                          use_dlopen=False, use_weak_symbols=False):
+                          use_dlopen=False, use_weak_symbols=False,
+                          hide_output=False):
     lib_func_map = select_libs_and_funcs(num_libs, num_funcs_per_lib)
 
     if compilation_tries == 0:
-        print("Failure: Reached maximum compilation attempts")
+        if not hide_output:
+            print("Failure: Reached maximum compilation attempts")
         return
 
     code = """
@@ -162,7 +164,13 @@ int main(int argc, char **argv) {
     command = f"{compiler} {output}.c -o{output}_without.exe "
     command = command + " ".join(flags)
 
-    if subprocess.call(command.split()) == 0:
+    if hide_output:
+        redirect = subprocess.DEVNULL
+    else:
+        # keep default
+        redirect = None
+
+    if subprocess.call(command.split(), stdout=redirect, stderr=redirect) == 0:
         # successful
         command = f"{compiler} {output}.c -o{output}_with.exe "
         # with trait lib
@@ -170,13 +178,15 @@ int main(int argc, char **argv) {
         # note that there are spaces in string at the end of the line to split the different args
 
         command = command + " ".join(flags)
-        compilation_status = subprocess.call(command.split())
+        compilation_status = subprocess.call(command.split(), stdout=redirect, stderr=redirect)
         assert (compilation_status == 0)
 
-        print(f"success, generated {output}.c and {output}_without.exe, {output}_with.exe")
+        if not hide_output:
+            print(f"success, generated {output}.c and {output}_without.exe, {output}_with.exe")
         return lib_func_map
     else:
-        print("fail compilation: trying again")
+        if not hide_output:
+            print("fail compilation: trying again")
         generate_test_program(compilation_tries - 1, num_libs, num_funcs_per_lib, output, use_dlopen, use_weak_symbols)
 
 
