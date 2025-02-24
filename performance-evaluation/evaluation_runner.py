@@ -5,8 +5,8 @@ from generate_test_code import generate_test_program
 import os
 
 # setup
-number_experiments = 1
-repetitions = 3
+number_experiments = 10
+repetitions = 10
 
 output_filename = "test_program"
 
@@ -60,6 +60,9 @@ def main():
 
     df = pd.DataFrame(results,columns=["num_libs", "combined_libs_size", "timing_with", "timing_without"])
     df.to_csv("evaluation_results.csv")
+
+    print("Summary:")
+    print(df.describe())
 
 
 if __name__ == "__main__":
