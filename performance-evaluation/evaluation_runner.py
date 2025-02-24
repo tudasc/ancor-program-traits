@@ -43,22 +43,22 @@ def get_lib_usage_info(program):
 
 
 def main():
-    df = pd.DataFrame(["num_libs", "combined_libs_size", "timing_with", "timing_without"])
+
+    results = []
 
     for i in range(number_experiments):
-        generate_test_program(output=output_filename, use_traits_lib=False)
+        generate_test_program(output=output_filename)
         count, size = get_lib_usage_info(output_filename + ".exe")
 
-        for
-        timing_without = timeit(stmt=f"subprocess.call('./{output_filename}.exe')", setup="import subprocess",
+        for j in range(repetitions):
+            timing_without = timeit(stmt=f"subprocess.call('./{output_filename}_without.exe')", setup="import subprocess",
                                 number=1)
-
-        generate_test_program(output=output_filename, use_traits_lib=True)
-        timing_with = timeit(stmt=f"subprocess.call('./{output_filename}.exe')", setup="import subprocess",
+            timing_with = timeit(stmt=f"subprocess.call('./{output_filename}_with.exe')", setup="import subprocess",
                              number=1)
-        print([count, size, timing_with, timing_without])
-        df.loc[i] = [count, size, timing_with, timing_without]
+            #print([count, size, timing_with, timing_without])
+            results.append([count, size, timing_with, timing_without])
 
+    df = pd.DataFrame(results,columns=["num_libs", "combined_libs_size", "timing_with", "timing_without"])
     df.to_csv("evaluation_results.csv")
 
 
