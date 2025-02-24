@@ -48,7 +48,7 @@ def main():
 
     for i in range(number_experiments):
         generate_test_program(output=output_filename)
-        count, size = get_lib_usage_info(output_filename + ".exe")
+        count, size = get_lib_usage_info(output_filename + "_without.exe")
 
         for j in range(repetitions):
             timing_without = timeit(stmt=f"subprocess.call('./{output_filename}_without.exe')", setup="import subprocess",
