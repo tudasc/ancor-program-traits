@@ -3,10 +3,11 @@ import pandas as pd
 from timeit import timeit
 from generate_test_code import generate_test_program
 import os
+from tqdm import tqdm
 
 # setup
-number_experiments = 10
-repetitions = 10
+number_experiments = 50
+repetitions = 100
 
 output_filename = "test_program"
 
@@ -43,22 +44,25 @@ def get_lib_usage_info(program):
 
 
 def main():
-
     results = []
 
-    for i in range(number_experiments):
-        generate_test_program(output=output_filename)
+    for i in tqdm(range(number_experiments)):
+        generate_test_program(output=output_filename, hide_output=True)
         count, size = get_lib_usage_info(output_filename + "_without.exe")
 
         for j in range(repetitions):
-            timing_without = timeit(stmt=f"subprocess.call('./{output_filename}_without.exe')", setup="import subprocess",
-                                number=1)
-            timing_with = timeit(stmt=f"subprocess.call('./{output_filename}_with.exe')", setup="import subprocess",
-                             number=1)
-            #print([count, size, timing_with, timing_without])
+            timing_without = timeit(
+                stmt=f"subprocess.call('./{output_filename}_without.exe', stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)",
+                setup="import subprocess",
+                number=1)
+            timing_with = timeit(
+                stmt=f"subprocess.call('./{output_filename}_with.exe', stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)",
+                setup="import subprocess",
+                number=1)
+            # print([count, size, timing_with, timing_without])
             results.append([count, size, timing_with, timing_without])
 
-    df = pd.DataFrame(results,columns=["num_libs", "combined_libs_size", "timing_with", "timing_without"])
+    df = pd.DataFrame(results, columns=["num_libs", "combined_libs_size", "timing_with", "timing_without"])
     df.to_csv("evaluation_results.csv")
 
     print("Summary:")
