@@ -64,9 +64,11 @@ def get_lib_link_flag(lib):
 
 
 # Generate test C program
-def generate_test_program(compilation_tries=10, output="test_code", use_traits_lib=True, use_dlopen=False,
-                          use_weak_symbols=False):
-    lib_func_map = select_libs_and_funcs()
+def generate_test_program(compilation_tries=10,
+                          num_libs=3, num_funcs_per_lib=2,
+                          output="test_code",
+                          use_dlopen=False, use_weak_symbols=False):
+    lib_func_map = select_libs_and_funcs(num_libs, num_funcs_per_lib)
 
     if compilation_tries == 0:
         print("Failure: Reached maximum compilation attempts")
@@ -118,8 +120,6 @@ int main(int argc, char **argv) {
     } else { call_libraries(); }
 }
 """
-    if use_traits_lib:
-        code = "#define USE_TRAITS 1\n" + code
 
     # if several libs offer the same func: use only one of them
     funcs_used = set()
@@ -151,26 +151,32 @@ int main(int argc, char **argv) {
     with open(output + ".c", "w") as f:
         f.write(code)
 
-    print("Generated test program using:")
-    for lib, funcs in lib_func_map.items():
-        print(f"  {lib}: {', '.join(funcs)}")
+    # print("Generated test program using:")
+    # for lib, funcs in lib_func_map.items():
+    #    print(f"  {lib}: {', '.join(funcs)}")
 
-    print("Try compiling ")
+    #print("Try compiling ")
 
     flags = [get_lib_link_flag(l) for l in lib_func_map]
-    command = f"{compiler} {output}.c -o{output}.exe "
-    if use_traits_lib:
-        command = command + f"-I {source_dir} -I {build_dir} -L {build_dir} -lancor_programm_traits "
-        # note that there are spaces in string at the end of the line to split the different args
-
+    command = f"{compiler} {output}_without.c -o{output}.exe "
     command = command + " ".join(flags)
+
     if subprocess.call(command.split()) == 0:
         # successful
-        print(f"success, generated {output}.c and {output}.exe")
-        return
+        command = f"{compiler} {output}.c -o{output}_with.exe "
+        # with trait lib
+        command = command + f"-DUSE_TRAITS=1 -I {source_dir} -I {build_dir} -L {build_dir} -lancor_programm_traits "
+        # note that there are spaces in string at the end of the line to split the different args
+
+        command = command + " ".join(flags)
+        compilation_status = subprocess.call(command.split())
+        assert(compilation_status == 0)
+
+        print(f"success, generated {output}.c and {output}_without.exe, {output}_with.exe")
+        return lib_func_map
     else:
         print("fail compilation: trying again")
-        generate_test_program(compilation_tries - 1, output, use_traits_lib, use_dlopen, use_weak_symbols)
+        generate_test_program(compilation_tries - 1, num_libs, num_funcs_per_lib, output, use_dlopen, use_weak_symbols)
 
 
 def parse_args():
