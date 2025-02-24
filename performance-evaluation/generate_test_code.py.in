@@ -10,7 +10,9 @@ source_dir = "@CMAKE_SOURCE_DIR@"
 build_dir = "@CMAKE_BINARY_DIR@"
 
 
+shared_lib_list=None
 def get_shared_libs():
+    global shared_lib_list
     if shared_lib_list is None:
         result = subprocess.run(["ldconfig", "-p"], capture_output=True, text=True)
         libs = []
@@ -24,7 +26,7 @@ def get_shared_libs():
                 pass
         shared_lib_list = libs
 
-        return shared_lib_list
+    return shared_lib_list
 
 
 
