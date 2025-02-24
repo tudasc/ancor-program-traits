@@ -10,20 +10,22 @@ source_dir = "@CMAKE_SOURCE_DIR@"
 build_dir = "@CMAKE_BINARY_DIR@"
 
 
-# Get all shared libraries installed
 def get_shared_libs():
-    result = subprocess.run(["ldconfig", "-p"], capture_output=True, text=True)
-    libs = []
-    for line in result.stdout.splitlines():
-        lib_path = line.split()[-1]
-        try:
-            if lib_path.endswith(".so") and magic.from_file(lib_path, mime=True) == "application/x-sharedlib":
-                libs.append(lib_path)
-        except FileNotFoundError as e:
-            # this is the info line telling us how many libraries are found
-            pass
+    if shared_lib_list is None:
+        result = subprocess.run(["ldconfig", "-p"], capture_output=True, text=True)
+        libs = []
+        for line in result.stdout.splitlines():
+            lib_path = line.split()[-1]
+            try:
+                if lib_path.endswith(".so") and magic.from_file(lib_path, mime=True) == "application/x-sharedlib":
+                    libs.append(lib_path)
+            except FileNotFoundError as e:
+                # this is the info line telling us how many libraries are found
+                pass
+        shared_lib_list = libs
 
-    return libs
+        return shared_lib_list
+
 
 
 # Get functions from a shared library using nm
@@ -156,8 +158,6 @@ int main(int argc, char **argv) {
     print("Try compiling ")
 
     flags = [get_lib_link_flag(l) for l in lib_func_map]
-    # TODO remove hardcoded path:
-    #  cmake should configure this script appropriately
     command = f"{compiler} {output}.c -o{output}.exe "
     if use_traits_lib:
         command = command + f"-I {source_dir} -I {build_dir} -L {build_dir} -lancor_programm_traits "
