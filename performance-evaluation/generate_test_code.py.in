@@ -10,7 +10,7 @@ source_dir = "@CMAKE_SOURCE_DIR@"
 build_dir = "@CMAKE_BINARY_DIR@"
 
 
-shared_lib_list=None
+shared_lib_list = None
 def get_shared_libs():
     global shared_lib_list
     if shared_lib_list is None:
@@ -27,7 +27,6 @@ def get_shared_libs():
         shared_lib_list = libs
 
     return shared_lib_list
-
 
 
 # Get functions from a shared library using nm
@@ -157,10 +156,10 @@ int main(int argc, char **argv) {
     # for lib, funcs in lib_func_map.items():
     #    print(f"  {lib}: {', '.join(funcs)}")
 
-    #print("Try compiling ")
+    # print("Try compiling ")
 
     flags = [get_lib_link_flag(l) for l in lib_func_map]
-    command = f"{compiler} {output}_without.c -o{output}.exe "
+    command = f"{compiler} {output}.c -o{output}_without.exe "
     command = command + " ".join(flags)
 
     if subprocess.call(command.split()) == 0:
@@ -172,7 +171,7 @@ int main(int argc, char **argv) {
 
         command = command + " ".join(flags)
         compilation_status = subprocess.call(command.split())
-        assert(compilation_status == 0)
+        assert (compilation_status == 0)
 
         print(f"success, generated {output}.c and {output}_without.exe, {output}_with.exe")
         return lib_func_map
@@ -193,11 +192,10 @@ def parse_args():
 
 def main():
     args = parse_args()
-    generate_test_program(args.compilation_tries,
-                          args.output,
-                          args.use_traits_lib,
-                          args.use_dlopen,
-                          args.use_weak_symbols)
+    generate_test_program(compilation_tries=args.compilation_tries,
+                          output=args.output,
+                          use_dlopen=args.use_dlopen,
+                          use_weak_symbols=args.use_weak_symbols)
 
 
 if __name__ == "__main__":
