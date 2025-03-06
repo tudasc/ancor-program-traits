@@ -34,7 +34,6 @@ double total_time_spent = 0;
 #endif
 
 
-
 #include "plthook.h"
 
 struct trait_results {
@@ -431,7 +430,12 @@ int evaluate_trait_on_library(struct dl_phdr_info *info, const char *lib_name, s
             if (strlen(info->dlpi_name) == 0) {
                 // is main binary
                 //sometimes the marker symbol is not in the dynamic symbol table, check if we find it in the static one
+#ifndef USE_MARKER_FUNCTION
                 return check_static_symbol_table_of_main_binary(trait);
+#else
+                // when using the marker function, it must be in the dynamic table, as it has weak linkeage, so no need to check static one as well
+                trait->is_true = FALSE;
+#endif
                 //will set trait->is_true appropriately
             } else {
                 trait->is_true = FALSE;
@@ -582,8 +586,8 @@ trait_handle_type register_trait(struct trait_options *options) {
 
     // initialize other fields
     handle->marker_to_look_for = malloc(
-        strlen(MARKER_INTEGER_NAME_PREFIX_STR) + strlen(options->name) + 1); // 1 for null terminator
-    strcpy(handle->marker_to_look_for, MARKER_INTEGER_NAME_PREFIX_STR);
+        strlen(MARKER_NAME_PREFIX_STR) + strlen(options->name) + 1); // 1 for null terminator
+    strcpy(handle->marker_to_look_for, MARKER_NAME_PREFIX_STR);
     strcat(handle->marker_to_look_for, options->name);
 
     handle->is_evluated = false;
