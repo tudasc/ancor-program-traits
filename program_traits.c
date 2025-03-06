@@ -435,6 +435,7 @@ int evaluate_trait_on_library(struct dl_phdr_info *info, const char *lib_name, s
 #else
                 // when using the marker function, it must be in the dynamic table, as it has weak linkeage, so no need to check static one as well
                 trait->is_true = FALSE;
+                return 1;
 #endif
                 //will set trait->is_true appropriately
             } else {

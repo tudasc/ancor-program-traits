@@ -3,8 +3,8 @@
 
 // settings
 // set type of marker to use
-#define USE_MARKER_INTEGER
-//#define USE_MARKER_FUNCTION
+//#define USE_MARKER_INTEGER
+#define USE_MARKER_FUNCTION
 
 #define MARKER_NAME_PREFIX marker_symbol_trait_
 
