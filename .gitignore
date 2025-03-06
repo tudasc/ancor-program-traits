@@ -1,6 +1,10 @@
+# build directories
 build
-cmake-build-debug
-cmake-build-release
+cmake-build-*
+
+# results of performance evaluation
+performance-evaluation/evaluation_results.csv
+performance-evaluation/*.pdf
 
 #ide specific
 .idea
