@@ -16,7 +16,7 @@ add_library(normal_mpi SHARED normal_mpi/mpi_lib.c)
 
 function(add_testcase_configuration TEST_NAME SRC_CODE HEADER_TO_INCLUDE LIB_TO_LINK TAG_TO_USE EXPECTED_TEST_RESULT)
     add_executable(${TEST_NAME} example_app_1.c)
-    target_include_directories(${TEST_NAME} PUBLIC ${HEADER_TO_INCLUDE})
+    target_include_directories(${TEST_NAME} PUBLIC ${HEADER_TO_INCLUDE} ${PROGRAM_TRAITS_INCLUDE_DIR})
     target_link_libraries(${TEST_NAME} PRIVATE ${LIB_TO_LINK})
     target_compile_definitions(${TEST_NAME} PUBLIC TAG_TO_USE=${TAG_TO_USE})
     add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
@@ -50,7 +50,7 @@ target_compile_definitions(M_N_W PUBLIC USE_WILDCARD)
 # test the new header without USE_WILDCARD fails compilation:
 #expected to FAIL compilation
 add_executable(M_M_W_fail example_app_1.c)
-target_include_directories(M_M_W_fail PUBLIC modified_mpi)
+target_include_directories(M_M_W_fail PUBLIC modified_mpi  ${PROGRAM_TRAITS_INCLUDE_DIR})
 target_link_libraries(M_M_W_fail PRIVATE modified_mpi)
 # omitting this should result in build failure
 #target_compile_definitions(M_M_W_fail PUBLIC USE_WILDCARD)
@@ -65,7 +65,7 @@ set_tests_properties(M_M_W_fail PROPERTIES WILL_FAIL TRUE)
 
 # fail compilation
 add_executable(M_N_W_fail example_app_1.c)
-target_include_directories(M_N_W_fail PUBLIC modified_mpi)
+target_include_directories(M_N_W_fail PUBLIC modified_mpi ${PROGRAM_TRAITS_INCLUDE_DIR})
 target_link_libraries(M_N_W_fail PRIVATE normal_mpi)
 # omit this will fail compilation
 #target_compile_definitions(M_N_W_fail PUBLIC USE_WILDCARD)
@@ -85,7 +85,7 @@ target_include_directories(wrapper_normal_no PUBLIC normal_mpi)
 target_link_libraries(wrapper_normal_no PRIVATE normal_mpi)
 
 add_library(wrapper_modified_no SHARED wrapper_lib/wrapper_lib.c)
-target_include_directories(wrapper_modified_no PUBLIC modified_mpi)
+target_include_directories(wrapper_modified_no PUBLIC modified_mpi ${PROGRAM_TRAITS_INCLUDE_DIR})
 target_link_libraries(wrapper_modified_no PRIVATE modified_mpi)
 
 add_library(wrapper_normal_with SHARED wrapper_lib/wrapper_lib.c)
@@ -96,13 +96,13 @@ target_link_libraries(wrapper_normal_with PRIVATE normal_mpi)
 target_compile_definitions(wrapper_normal_with PUBLIC TAG_TO_USE=MATCHING_WILDCARD)
 
 add_library(wrapper_modified_with SHARED wrapper_lib/wrapper_lib.c)
-target_include_directories(wrapper_modified_with PUBLIC modified_mpi)
+target_include_directories(wrapper_modified_with PUBLIC modified_mpi ${PROGRAM_TRAITS_INCLUDE_DIR})
 target_link_libraries(wrapper_modified_with PRIVATE modified_mpi)
 target_compile_definitions(wrapper_modified_with PUBLIC USE_WILDCARD)
 target_compile_definitions(wrapper_modified_with PUBLIC TAG_TO_USE=MATCHING_WILDCARD)
 
 add_library(wrapper_modified_with_fail SHARED wrapper_lib/wrapper_lib.c)
-target_include_directories(wrapper_modified_with_fail PUBLIC modified_mpi)
+target_include_directories(wrapper_modified_with_fail PUBLIC modified_mpi ${PROGRAM_TRAITS_INCLUDE_DIR})
 target_link_libraries(wrapper_modified_with_fail PRIVATE modified_mpi)
 # make compilation fail
 #target_compile_definitions(wrapper_modified_with_fail PUBLIC USE_WILDCARD)
@@ -120,7 +120,7 @@ set_tests_properties(wrapper_modified_with_fail PROPERTIES WILL_FAIL TRUE)
 
 function(add_simple_wrapper_testcase TEST_NAME SRC_CODE WRAPPER_LIB EXPECTED_TEST_RESULT)
     add_executable(${TEST_NAME} ${SRC_CODE})
-    target_include_directories(${TEST_NAME} PUBLIC wrapper_lib)
+    target_include_directories(${TEST_NAME} PUBLIC wrapper_lib ${PROGRAM_TRAITS_INCLUDE_DIR})
     target_link_libraries(${TEST_NAME} PRIVATE ${WRAPPER_LIB})
     add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
     set_tests_properties(${TEST_NAME} PROPERTIES
@@ -140,7 +140,7 @@ add_simple_wrapper_testcase(wrapper_test_4 example_app_2.c wrapper_modified_with
 
 function(add_dynamic_wrapper_testcase TEST_NAME SRC_CODE WRAPPER_LIB EXPECTED_TEST_RESULT)
     add_executable(${TEST_NAME} ${SRC_CODE})
-    target_include_directories(${TEST_NAME} PUBLIC wrapper_lib)
+    target_include_directories(${TEST_NAME} PUBLIC wrapper_lib ${PROGRAM_TRAITS_INCLUDE_DIR})
     # the lib that contains dlopen
     target_link_libraries(${TEST_NAME} dl)
     target_compile_definitions(${TEST_NAME} PUBLIC LIBRARY_TO_LOAD="$<TARGET_FILE:${WRAPPER_LIB}>")
@@ -167,7 +167,7 @@ add_dynamic_wrapper_testcase(wrapper_test_8 example_app_3.c wrapper_modified_wit
 function(add_dynamic_wrapper_testcase_2 TEST_NAME SRC_CODE MPI_HEADER MPI_LIB WRAPPER_LIB EXPECTED_TEST_RESULT)
     add_executable(${TEST_NAME} ${SRC_CODE})
     target_include_directories(${TEST_NAME} PUBLIC wrapper_lib)
-    target_include_directories(${TEST_NAME} PUBLIC ${MPI_HEADER})
+    target_include_directories(${TEST_NAME} PUBLIC ${MPI_HEADER} ${PROGRAM_TRAITS_INCLUDE_DIR})
     # the lib that contains dlopen
     target_link_libraries(${TEST_NAME} dl)
     target_link_libraries(${TEST_NAME} ${MPI_LIB})

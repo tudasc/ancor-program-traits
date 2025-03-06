@@ -46,8 +46,7 @@ target_link_libraries(ancor_programm_traits dl)
 target_include_directories(ancor_programm_traits PUBLIC "${CMAKE_CURRENT_BINARY_DIR}")
 target_include_directories(ancor_programm_traits PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 
-# derived targets may want to include generated and non generated files:
-set(PROGRAM_TRAITS_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}:${CMAKE_CURRENT_SOURCE_DIR}")
+set(PROGRAM_TRAITS_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR})
 
 set(LIB_PROGRAM_TRAITS_LOCATION ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}ancor_programm_traits${CMAKE_SHARED_LIBRARY_SUFFIX})
 
@@ -79,6 +78,7 @@ endif ()
 
 # configure header based on options
 configure_file(program_traits.h.in program_traits.h @ONLY)
+configure_file(markers.h.in markers.h @ONLY)
 
 
 add_subdirectory(tests)
