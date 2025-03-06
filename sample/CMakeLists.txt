@@ -14,7 +14,7 @@ ExternalProject_Add(
         URL_HASH MD5=b0c2a9690ce5325d69b7022219d94f64
         CONFIGURE_COMMAND
         <SOURCE_DIR>/configure --prefix <INSTALL_DIR> CC=${CMAKE_C_COMPILER} ${MPICH_CONFIGURE_FLAGS}
-        PATCH_COMMAND patch -b <SOURCE_DIR>/src/include/mpi.h.in ${CMAKE_CURRENT_SOURCE_DIR}/mpi.h.in.patch
+        PATCH_COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/patch_mpi_header.sh <SOURCE_DIR>/src/include/mpi.h.in ${CMAKE_CURRENT_SOURCE_DIR}/mpi.h.in.patch ${PROGRAM_TRAITS_INCLUDE_DIR}/markers.h
         BUILD_COMMAND make -j ${CMAKE_BUILD_PARALLEL_LEVEL}
         INSTALL_COMMAND make install
         DOWNLOAD_EXTRACT_TIMESTAMP true
