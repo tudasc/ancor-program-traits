@@ -255,11 +255,7 @@ bool is_libc(const char *lib_name) {
 }
 
 bool is_libdl(const char *lib_name) {
-#ifdef LIBDL_LOCATION
     return is_same_lib(lib_name, LIBDL_LOCATION);
-#else
-    return false;
-#endif
 }
 
 bool check_skip_library(struct dl_phdr_info *info, struct trait_results *trait) {
