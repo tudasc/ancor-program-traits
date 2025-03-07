@@ -187,7 +187,7 @@ int main(int argc, char **argv) {
     else:
         if not hide_output:
             print("fail compilation: trying again")
-        generate_test_program(compilation_tries - 1, num_libs, num_funcs_per_lib, output, use_dlopen, use_weak_symbols)
+        generate_test_program(compilation_tries - 1, num_libs, num_funcs_per_lib, output, use_dlopen, use_weak_symbols, hide_output)
 
 
 def parse_args():
