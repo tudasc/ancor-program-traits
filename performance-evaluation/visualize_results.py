@@ -1,15 +1,24 @@
+from fileinput import filename
+
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import argparse
 
-df = pd.read_csv('evaluation_results.csv', index_col=0)
+parser = argparse.ArgumentParser()
+parser.add_argument("--input", default='evaluation_results.csv', required=False)
+
+args = parser.parse_args()
+
+df = pd.read_csv(args.input, index_col=0)
 
 # TODO properly detect outliers
 # if library functionality actually gets executed (e.g. global con/destructors) it skews our data
 # TODO currently only with trait analysis, library functions are sometimes actually executed
 # TODO fix evaluation for those libraries?
-df = df[df["timing_without"] <= 0.1]  # remove outliers
-df = df[df["timing_with"] <= 0.1]  # remove outliers
+
+# df = df[df["timing_without"] <= 0.1]  # remove outliers
+# df = df[df["timing_with"] <= 0.1]  # remove outliers
 
 df_melt = df.melt(id_vars=["num_libs", "combined_libs_size"],
                   value_vars=["timing_with", "timing_without"],
