@@ -6,3 +6,5 @@ target_link_libraries(evaluation_driver PRIVATE ancor_programm_traits)
 target_link_libraries(evaluation_driver PRIVATE m)
 
 configure_file(generate_test_code.py.in generate_test_code.py @ONLY)
+configure_file(evaluation_runner.py evaluation_runner.py COPYONLY)
+configure_file(visualize_results.py visualize_results.py COPYONLY)
