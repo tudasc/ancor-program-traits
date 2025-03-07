@@ -9,7 +9,6 @@ compiler = "@CMAKE_C_COMPILER@"
 source_dir = "@CMAKE_SOURCE_DIR@"
 build_dir = "@CMAKE_BINARY_DIR@"
 
-
 shared_lib_list = None
 
 
@@ -181,13 +180,26 @@ int main(int argc, char **argv) {
         compilation_status = subprocess.call(command.split(), stdout=redirect, stderr=redirect)
         assert (compilation_status == 0)
 
+        # check that no output is produced
+        # as we link to random libraries, there may be ones, that do something in constructors/destructors
+        # notably one that collect memory usage and print a summary
+        # these programs actually perform some task, therefore we consider them invalid for our evaluation
+        process_out_with = subprocess.check_output(f'./{output}_with.exe')
+        process_out_without = subprocess.check_output(f'./{output}_without.exe')
+        if len(process_out_with or process_out_without) > 0:
+            if not hide_output:
+                print("fail compilation: trying again")
+            generate_test_program(compilation_tries - 1, num_libs, num_funcs_per_lib, output, use_dlopen,
+                                  use_weak_symbols, hide_output)
+
         if not hide_output:
             print(f"success, generated {output}.c and {output}_without.exe, {output}_with.exe")
         return lib_func_map
     else:
         if not hide_output:
             print("fail compilation: trying again")
-        generate_test_program(compilation_tries - 1, num_libs, num_funcs_per_lib, output, use_dlopen, use_weak_symbols, hide_output)
+        generate_test_program(compilation_tries - 1, num_libs, num_funcs_per_lib, output, use_dlopen, use_weak_symbols,
+                              hide_output)
 
 
 def parse_args():

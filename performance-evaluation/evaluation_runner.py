@@ -6,10 +6,18 @@ import os
 from tqdm import tqdm
 
 # setup
-number_experiments = 50
+number_experiments = 100
 repetitions = 100
 
 output_filename = "test_program"
+
+# configured by cmake
+program_traits_lib_dir = "@CMAKE_BINARY_DIR@"
+
+
+def check_lib_path():
+    lib_paths = os.environ.get("LD_LIBRARY_PATH", "").split(":")
+    return program_traits_lib_dir in lib_paths
 
 
 def get_lib_usage_info(program):
@@ -45,6 +53,7 @@ def get_lib_usage_info(program):
 
 def main():
     results = []
+    assert check_lib_path() and "Put the ancor Program traits library into teh LD_LIBRARY_PATH"
 
     for i in tqdm(range(number_experiments)):
         generate_test_program(output=output_filename, hide_output=True)
