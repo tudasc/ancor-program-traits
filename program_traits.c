@@ -434,6 +434,9 @@ int evaluate_trait_on_library(struct dl_phdr_info *info, const char *lib_name, s
                 return check_static_symbol_table_of_main_binary(trait);
 #else
                 // when using the marker function, it must be in the dynamic table, as it has weak linkeage, so no need to check static one as well
+#ifndef NDEBUG
+                printf("Library: %s: DOES NOT have the Trait\n", lib_name);
+#endif
                 trait->is_true = FALSE;
                 return 1;
 #endif
