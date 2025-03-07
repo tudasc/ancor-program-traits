@@ -3,6 +3,7 @@ import random
 import subprocess
 import magic
 import argparse
+import re
 
 # cmake will configure this part
 compiler = "@CMAKE_C_COMPILER@"
@@ -12,21 +13,47 @@ build_dir = "@CMAKE_BINARY_DIR@"
 shared_lib_list = None
 
 
+def get_ld_library_paths():
+    """Extract system library search paths from `ld --verbose` and include `LD_LIBRARY_PATH`."""
+    search_dirs = []
+
+    # Get paths from `LD_LIBRARY_PATH`
+    ld_library_path = os.environ.get("LD_LIBRARY_PATH", "")
+    if ld_library_path:
+        search_dirs.extend(ld_library_path.split(":"))  # Split by `:` as multiple paths can be set
+
+    try:
+        # Run `ld --verbose` to get default search paths
+        result = subprocess.run(["ld", "--verbose"], capture_output=True, text=True, check=True)
+
+        # Extract paths from SEARCH_DIR("path") entries using regex
+        system_dirs = re.findall(r'SEARCH_DIR\("([^"]+)"\)', result.stdout)
+        search_dirs.extend([e[1:] for e in system_dirs])  # remove = from output
+
+    except subprocess.CalledProcessError as e:
+        print("Error running `ld --verbose`:", e)
+
+    # Remove duplicates and return paths
+    return sorted(set(search_dirs))
+
+
+def discover_shared_libs():
+    libs = []
+    for d in get_ld_library_paths():
+        try:
+            for f in os.listdir(d):
+                file = os.path.join(d, f)
+                if file.endswith(".so") and magic.from_file(file, mime=True) == "application/x-sharedlib":
+                    libs.append(file)
+        except FileNotFoundError as e:
+            pass  # skip non-existent ones
+    return libs
+
+
 def get_shared_libs():
     global shared_lib_list
     if shared_lib_list is None:
-        result = subprocess.run(["ldconfig", "-p"], capture_output=True, text=True)
-        libs = []
-        for line in result.stdout.splitlines():
-            lib_path = line.split()[-1]
-            try:
-                if lib_path.endswith(".so") and magic.from_file(lib_path, mime=True) == "application/x-sharedlib":
-                    libs.append(lib_path)
-            except FileNotFoundError as e:
-                # this is the info line telling us how many libraries are found
-                pass
-        shared_lib_list = libs
-
+        shared_lib_list = discover_shared_libs()
     return shared_lib_list
 
 
@@ -180,15 +207,20 @@ int main(int argc, char **argv) {
         compilation_status = subprocess.call(command.split(), stdout=redirect, stderr=redirect)
         assert (compilation_status == 0)
 
-        # check that no output is produced
-        # as we link to random libraries, there may be ones, that do something in constructors/destructors
-        # notably one that collect memory usage and print a summary
-        # these programs actually perform some task, therefore we consider them invalid for our evaluation
-        process_out_with = subprocess.check_output(f'./{output}_with.exe')
-        process_out_without = subprocess.check_output(f'./{output}_without.exe')
-        if len(process_out_with or process_out_without) > 0:
-            if not hide_output:
-                print("fail compilation: trying again")
+        try:
+            # check that no output is produced and no segfault occurs
+            # as we link to random libraries, there may be ones, that do something in constructors/destructors
+            # notably one that collect memory usage and print a summary
+            # these programs actually perform some task, therefore we consider them invalid for our evaluation
+            process_out_with = subprocess.check_output(f'./{output}_with.exe')
+            process_out_without = subprocess.check_output(f'./{output}_without.exe')
+            if len(process_out_with or process_out_without) > 0:
+                if not hide_output:
+                    print("fail compilation: trying again")
+                generate_test_program(compilation_tries - 1, num_libs, num_funcs_per_lib, output, use_dlopen,
+                                      use_weak_symbols, hide_output)
+
+        except subprocess.CalledProcessError:
             generate_test_program(compilation_tries - 1, num_libs, num_funcs_per_lib, output, use_dlopen,
                                   use_weak_symbols, hide_output)
 
