@@ -2,6 +2,7 @@ from fileinput import filename
 
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 import seaborn as sns
 import argparse
 
@@ -12,28 +13,46 @@ args = parser.parse_args()
 
 df = pd.read_csv(args.input, index_col=0)
 
-# TODO properly detect outliers
-# if library functionality actually gets executed (e.g. global con/destructors) it skews our data
-# TODO currently only with trait analysis, library functions are sometimes actually executed
-# TODO fix evaluation for those libraries?
-
-# df = df[df["timing_without"] <= 0.1]  # remove outliers
-# df = df[df["timing_with"] <= 0.1]  # remove outliers
+# convert to MB
+df["combined_libs_size"] = df["combined_libs_size"] / 1e6
 
 df_melt = df.melt(id_vars=["num_libs", "combined_libs_size"],
                   value_vars=["timing_with", "timing_without"],
                   var_name="Timing Type",
                   value_name="Timing")
 
-sns.scatterplot(data=df_melt, x="combined_libs_size", y="Timing", hue="Timing Type")
+new_labels = ["With trait check", "No trait check"]
+
+ax = sns.scatterplot(data=df_melt, x="combined_libs_size", y="Timing", hue="Timing Type")
+
+legend = ax.get_legend()
+# Rename the legend entries
+if legend:
+    for i, text in enumerate(legend.get_texts()):
+        if i < len(new_labels):
+            text.set_text(new_labels[i])
+    # Remove the legend title
+    legend.set_title(None)
 
 plt.title("Timing vs. Combined Library Size")
-plt.xlabel("Combined Library Size")
+plt.xlabel("Combined Library Size (MB)")
 plt.ylabel("Timing (seconds)")
 plt.savefig("Library_Size.pdf")
+# manual setting of xtics
+
+
 plt.cla()
 
-sns.scatterplot(data=df_melt, x="num_libs", y="Timing", hue="Timing Type")
+ax = sns.scatterplot(data=df_melt, x="num_libs", y="Timing", hue="Timing Type")
+
+legend = ax.get_legend()
+# Rename the legend entries
+if legend:
+    for i, text in enumerate(legend.get_texts()):
+        if i < len(new_labels):
+            text.set_text(new_labels[i])
+    # Remove the legend title
+    legend.set_title(None)
 
 plt.title("Timing vs. number of Libraries")
 plt.xlabel("Number of Libraries")
