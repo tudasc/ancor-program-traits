@@ -1,8 +1,16 @@
-# Embedding programm traits
+# Embedding Programm Traits
 
-embedding of Marker symbols for dynamic detection of Program traits
+Embedding of Marker symbols for dynamic detection of Program traits
 
 # Build
+
+* build with cmake:
+  `mkdir build && cd build && cmake .. && make` cmake options:
+    * `HOOK_DLOPEN`: disable hooking of `dlopen` (default On)
+    * `HOOK_MPROTECT`: disable hooking of `mprotect` (default On)
+    * `BUILD_MPI_EXAMPLES`: enables building of MI examples. This builds MPICH MPI implementation and a wrapper
+      showcasting how MPI could use the trait embedding mechnaism with MPI Mini-Apps (default Off)
+* run tests with `ctest`
 
 # Usage
 
@@ -13,7 +21,7 @@ In the program/library that one wants to include a trait marker for `my_trait`
 * include `markers.h`
 * use `marker(my_trait)` macro, one can include multiple trait markers
 
-## analyze traits
+## Analyze Traits
 
 The Program or library that analyzes if the trait `my_trait` holds for all parts of the program uses the
 `libancor_programm_traits` library to inquire about the traits:
@@ -40,3 +48,12 @@ The Program or library that analyzes if the trait `my_trait` holds for all parts
 * use `check_trait()` with the handle as an argument to check if the trait is fulfilled.
 * `remove_trait()` on this handle will free all ressources used and remove the checking for `dlopen` and `mprotect` for
   this trait.
+
+# Evaluation
+
+Evaluation scripts are in the `performance-evaluation` directory.
+Run the python script `evaluation_runner.py` in order to collect perfromance data.
+This will generate and execute test programs that link to randomly installed libraries (no library is actually called).
+These results can be visualized with the `visualize_results.py` script.
+``
+
